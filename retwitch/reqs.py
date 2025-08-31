@@ -1,11 +1,12 @@
 import typing
 import aiohttp
+import logging
+
 from collections.abc import Mapping
 from http import HTTPStatus
 from retwitch.token import TokenManager
-from gunlinuxbot.utils import logger_setup
 
-logger = logger_setup('twitchbot')
+logger = logging.getLogger('twitchbot')
 
 
 EVENT_SUB = 'https://api.twitch.tv/helix/eventsub/subscriptions'

@@ -1,42 +1,34 @@
 import asyncio
 import os
-import typing
+import logging
 
 from dotenv import load_dotenv
 
 from retwitch.token import TokenManager
 from retwitch.bot import BotClient, ChannelBotClient
-from retwitch.schemas import Event, RetwitchEvent
-from gunlinuxbot.utils import logger_setup
-from gunlinuxbot import settings
-
+from retwitch.schemas import RetwitchEvent
+from retwitch import settings
 
 from collections.abc import Callable, Awaitable
 
 from requeue.requeue import Queue
 from requeue.rredis import RedisConnection, Connection
 
-if typing.TYPE_CHECKING:
-    from requeue.models import QueueMessage
 
-
-logger = logger_setup('retwitch')
+logger = logging.getLogger('retwitch')
 
 
 async def init_process(
     redis_connection: Connection,
-) -> Callable[[Event], Awaitable[None]]:
+) -> Callable[[RetwitchEvent], Awaitable[None]]:
     process_queue: Queue = Queue(
         name=settings.TWITCH_EVENTS, connection=redis_connection
     )
     local_events: Queue = Queue(name=settings.LOCAL_EVENTS, connection=redis_connection)
 
-    async def process_mssg(event: Event) -> None:
-        message = typing.cast('RetwitchEvent', event)
+    async def process_mssg(event: RetwitchEvent) -> None:
         logger.info('processsing event: %s', event)
-        payload: QueueMessage = typing.cast(
-            'QueueMessage', message.map_to_queue_message(source='retwitch_getter')
-        )
+        payload = event.map_to_queue_message(source='retwitch_getter')
         await process_queue.push(payload)
         await local_events.push(payload)
 

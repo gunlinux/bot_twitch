@@ -1,13 +1,13 @@
 import asyncio
 import typing
+import logging
 
 from dotenv import load_dotenv
 
 from retwitch.token import TokenManager
 from retwitch.bot import SenderBotClient
 from retwitch.reqs import TwitchAccessError
-from gunlinuxbot.utils import logger_setup
-from gunlinuxbot import settings
+from retwitch import settings
 
 
 from requeue.requeue import Queue
@@ -16,7 +16,7 @@ from requeue.rredis import RedisConnection
 from requeue.models import QueueMessage
 
 
-logger = logger_setup('retwitch')
+logger = logging.getLogger('retwitch')
 # twitch has a limit of 5 messages per minute
 MESSAGE_TIMEOUT = 5
 

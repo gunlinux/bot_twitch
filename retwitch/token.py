@@ -10,8 +10,7 @@ from collections.abc import Mapping
 from dataclasses import asdict
 
 import aiohttp
-from gunlinuxbot.utils import logger_setup
-from gunlinuxbot import settings
+from retwitch import settings
 from retwitch.schemas import TokenResponseSchema
 
 if typing.TYPE_CHECKING:
@@ -22,7 +21,7 @@ TOKEN_URL: str = 'https://id.twitch.tv/oauth2/token'  # noqa: S105
 TWITCH_AUTH: str = 'https://id.twitch.tv/oauth2/authorize'
 TOKEN_REVOKE: str = 'https://id.twitch.tv/oauth2/revoke'  # noqa: S105
 REFRESH_TOKEN_DELTA: int = 6000
-logger: logging.Logger = logger_setup(name='retwitch')
+logger: logging.Logger = logging.getLogger(name='retwitch')
 
 
 scopes = [

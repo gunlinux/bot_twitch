@@ -32,7 +32,7 @@ class RetwitchEvent:
     def message(self) -> str | None:
         return None
 
-    def map_to_queue_message(self, source='retwitch_getter') -> QueueMessage:
+    def map_to_queue_message(self, source: str = 'retwitch_getter') -> QueueMessage:
         event_type = self.event_type.name
         return QueueMessage(
             event=event_type,

@@ -4,14 +4,13 @@ from collections.abc import Callable
 from typing import Any
 import typing
 
-from gunlinuxbot.models import Event
 
 from requeue.models import QueueMessage
 from requeue.sender.sender import SenderAbc
 
 from retwitch.schemas import (
     EventType,
-    EventChannelMessage,
+    RetwitchEvent,
 )
 from requeue.models import QueueEvent
 
@@ -19,7 +18,7 @@ from collections.abc import Awaitable
 from typing import Protocol, runtime_checkable
 
 
-logger = logging.getLogger('gunlinuxbot.handlers')
+logger = logging.getLogger('retwitch.handlers')
 logger.setLevel(logging.DEBUG)
 
 
@@ -29,7 +28,7 @@ class CommandRunner(Protocol):
 
     async def __call__(
         self,
-        event: Event,
+        event: RetwitchEvent,
         post: Awaitable[Any] | Callable[..., Any] | None = None,
         data: dict[str, str] | None = None,
     ) -> None: ...
@@ -49,7 +48,7 @@ class Command:
         self.real_runner = real_runner
         self.data: dict[str, typing.Any] = {} if data is None else data
 
-    async def run(self, event: Event) -> str | None:
+    async def run(self, event: QueueEvent) -> str | None:
         logger.debug('Running command %s for event %s', self.name, event)
         if self.real_runner is None:
             logger.warning('Command %s not implemented yet', self.name)
@@ -123,7 +122,7 @@ class RetwitchEventHandler(EventHandler):
             await self._channel_raid(event)
 
         if event.event_type == EventType.CHANNEL_MESSAGE.name:
-            await self.run_command(typing.cast('EventChannelMessage', event))
+            await self.run_command(event)
 
         if event.event_type == EventType.CUSTOM_REWARD.name:
             await self._custom_reward(event)
@@ -153,7 +152,7 @@ class RetwitchEventHandler(EventHandler):
         if event.message:
             await self.chat(event.message)
 
-    async def run_command(self, event: EventChannelMessage) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+    async def run_command(self, event: QueueEvent) -> None:
         logger.debug('Running command for event %s', event)
         for command_name, command in self.commands.items():
             if (

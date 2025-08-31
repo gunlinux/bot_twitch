@@ -6,7 +6,7 @@ import json
 from time import time
 
 import aiohttp
-from retwitch.schemas import EventSchema, Event, create_event_from_subevent
+from retwitch.schemas import EventSchema, create_event_from_subevent, RetwitchEvent
 from retwitch.token import TokenManager
 from retwitch.reqs import HttpReqs
 
@@ -41,7 +41,7 @@ class BotClient:
         self.broadcaster_user_id: str = broadcaster_user_id
         self.lastseen: float | None = None
         self._socket = None
-        self.handler: Callable[[Event], Awaitable[None]] | None = None
+        self.handler: Callable[[RetwitchEvent], Awaitable[None]] | None = None
 
     async def create_sub(self, session_id: str) -> None:
         await self.http_reqs.create_sub_chat_message(
@@ -75,7 +75,7 @@ class BotClient:
             case 'revocation':
                 await self._socket.close()
             case _:
-                new_event: Event | None = create_event_from_subevent(event)
+                new_event: RetwitchEvent | None = create_event_from_subevent(event)
                 if not new_event:
                     return
                 if self.handler:
@@ -92,7 +92,7 @@ class BotClient:
                 logger.warning('we are dead')
                 await self._socket.close()
 
-    async def run(self, handler: Callable[[Event], Awaitable[None]]) -> None:
+    async def run(self, handler: Callable[[RetwitchEvent], Awaitable[None]]) -> None:
         self.handler = handler
         await asyncio.gather(self.run_ws(), self._listen())
 
