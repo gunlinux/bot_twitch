@@ -1,5 +1,4 @@
 import asyncio
-import logging
 
 from retwitch.handlers import RetwitchEventHandler
 from requeue.requeue import Queue
@@ -9,10 +8,10 @@ from retwitch.handlers import Command
 from commander import get_commands_from_dir, reload_command
 from commander.commands import auf
 from retwitch import settings
+from retwitch.utils import logger_setup
 
 
-logger = logging.getLogger('donats_worker')
-logger.info('Donats worker service started')
+logger = logger_setup(__name__)
 
 
 async def main() -> None:

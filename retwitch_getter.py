@@ -1,6 +1,5 @@
 import asyncio
 import os
-import logging
 
 from dotenv import load_dotenv
 
@@ -8,6 +7,7 @@ from retwitch.token import TokenManager
 from retwitch.bot import BotClient, ChannelBotClient
 from retwitch.schemas import RetwitchEvent
 from retwitch import settings
+from retwitch.utils import logger_setup
 
 from collections.abc import Callable, Awaitable
 
@@ -15,7 +15,7 @@ from requeue.requeue import Queue
 from requeue.rredis import RedisConnection, Connection
 
 
-logger = logging.getLogger('retwitch')
+logger = logger_setup(__name__)
 
 
 async def init_process(

@@ -1,6 +1,5 @@
 import asyncio
 import typing
-import logging
 
 from dotenv import load_dotenv
 
@@ -8,6 +7,7 @@ from retwitch.token import TokenManager
 from retwitch.bot import SenderBotClient
 from retwitch.reqs import TwitchAccessError
 from retwitch import settings
+from retwitch.utils import logger_setup
 
 
 from requeue.requeue import Queue
@@ -16,7 +16,7 @@ from requeue.rredis import RedisConnection
 from requeue.models import QueueMessage
 
 
-logger = logging.getLogger('retwitch')
+logger = logger_setup(__name__)
 # twitch has a limit of 5 messages per minute
 MESSAGE_TIMEOUT = 5
 
