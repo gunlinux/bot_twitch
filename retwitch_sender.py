@@ -22,16 +22,18 @@ MESSAGE_TIMEOUT = 5
 
 
 async def init_process(bot: SenderBotClient) -> typing.Any:
-    async def process(message: QueueMessage) -> None:
+    async def process(message: QueueMessage) -> QueueMessage:
         logger.debug('%s process %s', __name__, message.event)
         if message.data:
             try:
                 if message.data.message:
                     await bot.send_message(message.data.message)
+                    message.finish()
             except TwitchAccessError as e:
                 await bot.token_manager.refresh_token()
                 logger.critical('twitch access error', exc_info=e)
             await asyncio.sleep(MESSAGE_TIMEOUT)
+        return message
 
     return process
 

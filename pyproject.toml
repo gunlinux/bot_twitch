@@ -16,7 +16,7 @@ dependencies = [
     "sentry-sdk==0.10.2",
     "sqlmodel>=0.0.24",
     "twitchio>=2.10.0",
-    "requeue",
+    "requeue==3.0.0",
 ]
 
 [dependency-groups]

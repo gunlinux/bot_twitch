@@ -100,7 +100,7 @@ class EventHandler(ABC):
 
 class RetwitchEventHandler(EventHandler):
     @typing.override
-    async def on_message(self, message: QueueMessage) -> QueueMessage | None:
+    async def on_message(self, message: QueueMessage) -> QueueMessage:
         logger.debug('Processing new event from queue')
         logger.debug('Received message data: %s', message.data)
         await self.handle_event(message.data)
