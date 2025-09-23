@@ -158,7 +158,7 @@ class RetwitchEventHandler(EventHandler):
             if (
                 event
                 and event.message
-                and event.message.startswith(command_name.lower())
+                and event.message.lower().startswith(command_name.lower())
             ):
                 logger.debug('detected command: %s', command)
                 command_to_run = command
