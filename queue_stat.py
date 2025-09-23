@@ -9,15 +9,12 @@ from retwitch.utils import logger_setup
 
 logger = logger_setup(__name__)
 
-
 queues_names = [
-    'da_events',
-    'twitch_mssgs',
-    'twitch_out',
-    'bs_donats',
     'local_events',
+    'bs_donats',
+    'da_events',
+    'twitch_out',
     'retwitch_mssgs',
-    'retwitch_events',
 ]
 
 

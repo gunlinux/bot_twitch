@@ -45,8 +45,6 @@ async def main():
         client_id=settings.RECLIENT_ID, client_secret=settings.RECLIENT_SECRET
     )
     token_manager.load_real_token()
-    await token_manager.refresh_token()
-    token_manager.save_real_token()
 
     async with RedisConnection(settings.redis_url) as redis_connection:
         queue: Queue = Queue(name=settings.TWITCH_OUT, connection=redis_connection)
