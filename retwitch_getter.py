@@ -1,36 +1,28 @@
 import asyncio
 import os
+from collections.abc import Callable, Awaitable
 
 from dotenv import load_dotenv
+from faststream.rabbit import RabbitBroker, RabbitExchange
 
 from retwitch.token import TokenManager
 from retwitch.bot import BotClient, ChannelBotClient
 from retwitch.schemas import RetwitchEvent
 from retwitch import settings
 from retwitch.utils import logger_setup
-
-from collections.abc import Callable, Awaitable
-
-from requeue.requeue import Queue
-from requeue.rredis import RedisConnection, Connection
+from requeue.fstream.publisher import Publisher
 
 
 logger = logger_setup(__name__)
 
 
 async def init_process(
-    redis_connection: Connection,
+    publisher: Publisher,
 ) -> Callable[[RetwitchEvent], Awaitable[None]]:
-    process_queue: Queue = Queue(
-        name=settings.TWITCH_EVENTS, connection=redis_connection
-    )
-    local_events: Queue = Queue(name=settings.LOCAL_EVENTS, connection=redis_connection)
-
     async def process_mssg(event: RetwitchEvent) -> None:
         logger.info('processsing event: %s', event)
-        payload = event.map_to_queue_message(source='retwitch_getter')
-        await process_queue.push(payload)
-        await local_events.push(payload)
+        payload = event.map_to_fqueue_message(source='retwitch_getter')
+        await publisher.publish(payload)
 
     return process_mssg
 
@@ -41,7 +33,6 @@ async def main():
     client_secret: str = os.getenv('RECLIENT_SECRET', '')
     owner_id: str = os.getenv('REOWNER_ID', '')
     bot_id: str = os.getenv('REBOT_ID', '')
-    redis_url: str = settings.twitch_redis_url
 
     token_manager = TokenManager(client_id=client_id, client_secret=client_secret)
     token_manager.load_real_token()
@@ -57,22 +48,24 @@ async def main():
     await channel_token_manager.refresh_token()
     channel_token_manager.save_real_token()
 
-    async with RedisConnection(redis_url) as redis_connection:
-        handler = await init_process(redis_connection=redis_connection)
+    broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
+    exch = RabbitExchange(settings.rabbit_exchange)
+    publisher = Publisher(broker=broker, exchange=exch)
+    handler = await init_process(publisher=publisher)
 
-        bot = BotClient(
-            token_manager=token_manager,
-            client_id=client_id,
-            user_id=bot_id,
-            broadcaster_user_id=owner_id,
-        )
-        bot_channel = ChannelBotClient(
-            token_manager=channel_token_manager,
-            client_id=client_id,
-            user_id=bot_id,
-            broadcaster_user_id=owner_id,
-        )
-        await asyncio.gather(bot.run(handler=handler), bot_channel.run(handler=handler))
+    bot = BotClient(
+        token_manager=token_manager,
+        client_id=client_id,
+        user_id=bot_id,
+        broadcaster_user_id=owner_id,
+    )
+    bot_channel = ChannelBotClient(
+        token_manager=channel_token_manager,
+        client_id=client_id,
+        user_id=bot_id,
+        broadcaster_user_id=owner_id,
+    )
+    await asyncio.gather(bot.run(handler=handler), bot_channel.run(handler=handler))
 
 
 if __name__ == '__main__':

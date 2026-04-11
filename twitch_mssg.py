@@ -1,7 +1,9 @@
 import asyncio
 import sys
+
+from faststream.rabbit import RabbitBroker
+
 from retwitch import settings
-from requeue.rredis import RedisConnection
 from requeue.sender.sender import Sender
 
 
@@ -15,10 +17,10 @@ async def main() -> None:
         sys.exit(1)
 
     mssg = sys.argv[1]
-    redis_url: str = settings.twitch_redis_url
-    async with RedisConnection(redis_url) as redis_connection:
-        sender = Sender(queue_name='twitch_out', connection=redis_connection)
-        await sender.send_message(mssg)
+    broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
+
+    sender = Sender(exchange_name=settings.TWITCH_OUT, broker=broker)
+    await sender.send_message(mssg)
 
 
 if __name__ == '__main__':

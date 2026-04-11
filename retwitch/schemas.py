@@ -4,7 +4,7 @@ from marshmallow_enum import EnumField
 
 from dataclasses import dataclass, asdict
 from enum import StrEnum
-from requeue.models import QueueMessage, QueueEvent
+from requeue.fstream.models import FQueueMessage, FQueueEvent
 import typing
 
 
@@ -32,12 +32,12 @@ class RetwitchEvent:
     def message(self) -> str | None:
         return None
 
-    def map_to_queue_message(self, source: str = 'retwitch_getter') -> QueueMessage:
+    def map_to_fqueue_message(self, source: str = 'retwitch_getter') -> FQueueMessage:
         event_type = self.event_type.name
-        return QueueMessage(
+        return FQueueMessage(
             event=event_type,
             source=source,
-            data=QueueEvent(
+            data=FQueueEvent(
                 event_type=event_type,
                 billing_system=None,
                 user_name=self.user_name,
