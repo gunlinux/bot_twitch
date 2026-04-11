@@ -7,16 +7,16 @@ requires-python = ">=3.10"
 dependencies = [
     "coredis>=4.22.0",
     "donationalertsapi>=2.0.2",
+    "faststream[rabbit]>=0.6.7",
     "marshmallow>=3.26.1",
     "marshmallow-enum>=1.5.1",
     "obs-websocket-py>=1.0",
     "pyright>=1.1.398",
     "python-dotenv>=1.0.1",
     "python-socketio>=5.11.4",
+    "requeue>=0.7.0",
     "sentry-sdk==0.10.2",
     "sqlmodel>=0.0.24",
-    "twitchio>=2.10.0",
-    "requeue==3.0.0",
 ]
 
 [dependency-groups]
@@ -33,7 +33,7 @@ dev = [
 select = ["ALL"]
 
 # 2. Avoid enforcing line-length violations (`E501`)
-ignore = ["E501", "Q000", "D", "DTZ005", "SIM117", "ANN", "I001", "S101", "T201", "COM812", "Q003", "EM101"]
+ignore = ["E501", "Q000", "D", "DTZ005", "SIM117", "ANN", "I001", "S101", "T201", "COM812", "Q003", "EM101", "PLW0108"]
 
 # 3. Avoid trying to fix flake8-bugbear (`B`) violations.
 unfixable = ["B"]

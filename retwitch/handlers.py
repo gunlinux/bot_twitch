@@ -5,14 +5,13 @@ from typing import Any
 import typing
 
 
-from requeue.models import QueueMessage
-from requeue.sender.sender import SenderAbc
+from requeue.fstream.models import FQueueMessage, FQueueEvent
+from requeue.sender.sender import SenderABC
 
 from retwitch.schemas import (
     EventType,
     RetwitchEvent,
 )
-from requeue.models import QueueEvent
 
 from collections.abc import Awaitable
 from typing import Protocol, runtime_checkable
@@ -48,7 +47,7 @@ class Command:
         self.real_runner = real_runner
         self.data: dict[str, typing.Any] = {} if data is None else data
 
-    async def run(self, event: QueueEvent) -> str | None:
+    async def run(self, event: FQueueEvent) -> str | None:
         logger.debug('Running command %s for event %s', self.name, event)
         if self.real_runner is None:
             logger.warning('Command %s not implemented yet', self.name)
@@ -61,17 +60,17 @@ class Command:
 
 
 class EventHandler(ABC):
-    def __init__(self, sender: SenderAbc | None, admin: str | None) -> None:
+    def __init__(self, sender: SenderABC | None, admin: str | None) -> None:
         self.commands: dict[str, Command] = {}
-        self.sender: SenderAbc | None = sender
+        self.sender: SenderABC | None = sender
         self.admin = admin
 
     @abstractmethod
-    async def handle_event(self, event: QueueEvent) -> None:
+    async def handle_event(self, event: FQueueEvent) -> None:
         pass
 
     @abstractmethod
-    async def on_message(self, message: QueueMessage) -> QueueMessage | None: ...
+    async def on_message(self, message: FQueueMessage) -> None: ...
 
     def register(self, name: str, command: Command) -> None:
         logger.debug('Successfully registered command %s', name)
@@ -100,15 +99,13 @@ class EventHandler(ABC):
 
 class RetwitchEventHandler(EventHandler):
     @typing.override
-    async def on_message(self, message: QueueMessage) -> QueueMessage:
+    async def on_message(self, message: FQueueMessage) -> None:
         logger.debug('Processing new event from queue')
         logger.debug('Received message data: %s', message.data)
         await self.handle_event(message.data)
-        message.finish()
-        return message
 
     @typing.override
-    async def handle_event(self, event: QueueEvent) -> None:
+    async def handle_event(self, event: FQueueEvent) -> None:
         if event.event_type == EventType.CHANNEL_FOLLOW.name:
             await self._follow(event)
 
@@ -127,32 +124,32 @@ class RetwitchEventHandler(EventHandler):
         if event.event_type == EventType.CUSTOM_REWARD.name:
             await self._custom_reward(event)
 
-    async def _follow(self, event: QueueEvent) -> None:
+    async def _follow(self, event: FQueueEvent) -> None:
         logger.info('donat.event _follow')
         if event.message:
             await self.chat(event.message)
 
-    async def _subscribe(self, event: QueueEvent) -> None:
+    async def _subscribe(self, event: FQueueEvent) -> None:
         logger.info('donat.event _subscribe')
         if event.message:
             await self.chat(event.message)
 
-    async def _resubscribe(self, event: QueueEvent) -> None:
+    async def _resubscribe(self, event: FQueueEvent) -> None:
         logger.info('donat.event _resubscribe')
         if event.message:
             await self.chat(event.message)
 
-    async def _channel_raid(self, event: QueueEvent) -> None:
+    async def _channel_raid(self, event: FQueueEvent) -> None:
         logger.info('donat.event _channel_raid')
         if event.message:
             await self.chat(event.message)
 
-    async def _custom_reward(self, event: QueueEvent) -> None:
+    async def _custom_reward(self, event: FQueueEvent) -> None:
         logger.info('donat.event _custom_reward %s', event)
         if event.message:
             await self.chat(event.message)
 
-    async def run_command(self, event: QueueEvent) -> None:
+    async def run_command(self, event: FQueueEvent) -> None:
         logger.debug('Running command for event %s', event)
         for command_name, command in self.commands.items():
             if (
