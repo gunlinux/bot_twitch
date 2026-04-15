@@ -51,6 +51,7 @@ class EventHandler(ABC):
         self.admin = admin
         self.command_dir = command_dir
         self.register(Command(name='$reset', real_runner=self.reload_raw_commands))
+        self.register(Command(name='$reload', real_runner=self.reload_raw_commands))
 
     @abstractmethod
     async def handle_event(self, event: FQueueEvent) -> None:
@@ -70,10 +71,11 @@ class EventHandler(ABC):
             logger.error('Cannot send message: sender is not initialized')
 
     def _clear_raw_commands(self) -> None:
-        for command_name, command in self.commands.items():
-            if command.real_runner is None:
-                _ = self.commands.pop(command_name)
-                logger.info('command removed %s', command)
+        self.commands = {
+            command_name: command
+            for command_name, command in self.commands.items()
+            if command.real_runner is not None
+        }
 
     def _get_commands_from_dir(self) -> list[Command]:
         # Get all files matching the '*.md' pattern
@@ -103,7 +105,8 @@ class EventHandler(ABC):
 
     async def reload_raw_commands(self, _: FQueueEvent) -> None:
         self._clear_raw_commands()
-        self._get_commands_from_dir()
+        for command in self._get_commands_from_dir():
+            self.register(command)
 
 
 class RetwitchEventHandler(EventHandler):
