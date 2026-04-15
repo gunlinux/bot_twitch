@@ -4,13 +4,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-# redis
-
-redis_url: str = os.environ.get('REDIS_URL', 'redis://127.0.0.1/2')
-twitch_redis_url: str = redis_url
-donats_redis_url: str = redis_url
-local_events_redis_url: str = os.environ.get('REDIS_URL', 'redis://gunlinux.ru/2')
-
 # fstream
 
 rabbit_url: str = os.environ.get('RABBIT_URL', 'amqp://user:password@localhost:5672/')
@@ -41,8 +34,7 @@ LOCAL_EVENTS = 'local_events'
 BEER_STAT = 'bs_donats'
 DONATS_EVENTS = 'da_events'
 TWITCH_OUT = 'twitch_out'
-TWITCH_EVENTS = 'retwitch_mssgs'
-
+TWITCH_EVENTS = 'twitch_events'
 
 currencies: dict[str, float] = {
     'USD': 80,
