@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "coredis>=4.22.0",
     "donationalertsapi>=2.0.2",
     "faststream[rabbit]>=0.6.7",
     "marshmallow>=3.26.1",
