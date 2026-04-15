@@ -31,6 +31,7 @@ async def main() -> None:
     ]
     for command in commands:
         retwitch_handler.register(command)
+    await retwitch_handler.reload_raw_commands(None)  # pyright: ignore[reportArgumentType]
 
     await RabbitConsumer(
         broker=broker,
