@@ -35,7 +35,7 @@ class BotClient:
         self.token_manager = token_manager
         self.client_id = client_id
         self._keep_alive_timeout: int = keep_alive_timeout
-        self._heartbeat: int = min(self._keep_alive_timeout, 25) + 5
+        self._heartbeat: int = min(self._keep_alive_timeout, 25)
         self.session_id = None
         self.user_id: str = user_id
         self.broadcaster_user_id: str = broadcaster_user_id
@@ -88,8 +88,10 @@ class BotClient:
             if self.lastseen is None or not self._socket:
                 continue
 
-            if time() - self.lastseen > self._keep_alive_timeout:
-                logger.warning('we are dead')
+            last_seen = time() - self.lastseen
+
+            if last_seen > self._keep_alive_timeout + 5:
+                logger.warning('we are dead %s', last_seen)
                 await self._socket.close()
 
     async def run(self, handler: Callable[[RetwitchEvent], Awaitable[None]]) -> None:
