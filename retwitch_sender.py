@@ -1,5 +1,4 @@
 import asyncio
-import typing
 
 from dotenv import load_dotenv
 from faststream.rabbit import RabbitBroker
@@ -15,22 +14,26 @@ from retwitch.utils import logger_setup
 
 logger = logger_setup(__name__)
 # twitch has a limit of 5 messages per minute
-MESSAGE_TIMEOUT = 5
+MESSAGE_TIMEOUT = 12
 
 
-async def init_process(bot: SenderBotClient) -> typing.Any:
-    async def process(message: FQueueMessage) -> None:
+class SenderConsumer:
+    def __init__(self, bot: SenderBotClient) -> None:
+        self.bot = bot
+
+    async def send_message(self, message: FQueueMessage) -> None:
+        if message.data and message.data.message:
+            await self.bot.send_message(message.data.message)
+
+    async def process(self, message: FQueueMessage) -> None:
         logger.debug('%s process %s', __name__, message.event)
         if message.data:
             try:
-                if message.data.message:
-                    await bot.send_message(message.data.message)
+                await self.send_message(message)
             except TwitchAccessError as e:
-                await bot.token_manager.refresh_token()
+                await self.bot.token_manager.refresh_token()
                 logger.critical('twitch access error', exc_info=e)
                 raise TwitchAccessError from e
-
-    return process
 
 
 async def main():
@@ -48,10 +51,12 @@ async def main():
         user_id=settings.REBOT_ID,
         broadcaster_user_id=settings.REOWNER_ID,
     )
-    process = await init_process(bot)
-    consumer = RabbitConsumer(queue_name='twitch_out', broker=broker, worker=process)
+    sender_consumer = SenderConsumer(bot=bot)
+    consumer = RabbitConsumer(
+        queue_name='twitch_out', broker=broker, worker=sender_consumer.process
+    )
     await bot.send_message('> sendbot rejoin chat')
-    await consumer.consume()
+    await consumer.consume(sleep_time=MESSAGE_TIMEOUT)
 
 
 if __name__ == '__main__':
