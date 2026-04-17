@@ -63,6 +63,8 @@ class EventHandler(ABC):
     def register(self, command: Command) -> None:
         logger.debug('Successfully registered command %s', command.name)
         self.commands[command.name] = command
+        if command.name[0] not in '$!':
+            self.commands[f'!{command.name}'] = command
 
     async def chat(self, mssg: str) -> None:
         if self.sender is not None:
