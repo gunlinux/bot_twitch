@@ -1135,8 +1135,8 @@ wheels = [
 
 [[package]]
 name = "requeue"
-version = "0.7.0"
-source = { git = "https://github.com/gunlinux/requeue?branch=main#aed371a95a55dce9ebfa95b5c33b3174fdfb6c9c" }
+version = "0.7.1"
+source = { git = "https://github.com/gunlinux/requeue?branch=main#3328be8803acefe0e80cd3b7ec2ebe03dc421b6c" }
 dependencies = [
     { name = "faststream" },
 ]
