@@ -6,7 +6,8 @@ import json
 from time import time
 
 import aiohttp
-from retwitch.schemas import EventSchema, create_event_from_subevent, RetwitchEvent
+from retwitch.schemas.events import EventSchema
+from retwitch.models.events import create_event_from_subevent, RetwitchEvent
 from retwitch.token import TokenManager
 from retwitch.reqs import HttpReqs
 

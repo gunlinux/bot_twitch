@@ -1,7 +1,7 @@
 import random
 import typing
 import logging
-from retwitch.schemas import RetwitchEvent
+from retwitch.schemas.events import RetwitchEvent
 
 logger = logging.getLogger(__name__)
 

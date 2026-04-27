@@ -11,7 +11,7 @@ from dataclasses import asdict
 
 import aiohttp
 from retwitch import settings
-from retwitch.schemas import TokenResponseSchema
+from retwitch.schemas.token import TokenResponseSchema
 
 if typing.TYPE_CHECKING:
     from retwitch.models import TokenResponse

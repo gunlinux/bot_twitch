@@ -7,9 +7,10 @@ from faststream.rabbit import RabbitBroker, RabbitExchange
 
 from retwitch.token import TokenManager
 from retwitch.bot import BotClient, ChannelBotClient
-from retwitch.schemas import RetwitchEvent
+from retwitch.schemas.events import RetwitchEvent
 from retwitch import settings
 from retwitch.utils import logger_setup
+from retwitch.queue import retwitch_to_queue
 from requeue.fstream.publisher import Publisher
 
 
@@ -21,7 +22,7 @@ async def init_process(
 ) -> Callable[[RetwitchEvent], Awaitable[None]]:
     async def process_mssg(event: RetwitchEvent) -> None:
         logger.info('processsing event: %s', event)
-        payload = event.map_to_fqueue_message(source='retwitch_getter')
+        payload = retwitch_to_queue(event, source='retwitch_getter')
         await publisher.publish(payload)
 
     return process_mssg
