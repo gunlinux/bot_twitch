@@ -6,8 +6,9 @@ import json
 from time import time
 
 import aiohttp
-from retwitch.schemas import EventSchema, create_event_from_subevent, RetwitchEvent
-from retwitch.token import TokenManager
+from retwitch.schemas.events import EventSchema
+from retwitch.models.events import create_event_from_subevent, RetwitchEvent
+from retwitch.token.token_manager import TokenManager
 from retwitch.reqs import HttpReqs
 
 """
@@ -24,16 +25,12 @@ class BotClient:
     def __init__(
         self,
         token_manager: TokenManager,
-        client_id: str,
         user_id: str,
         broadcaster_user_id: str,
         keep_alive_timeout: int = 30,
     ):
-        self.http_reqs: HttpReqs = HttpReqs(
-            token_manager=token_manager, client_id=client_id
-        )
+        self.http_reqs: HttpReqs = HttpReqs(token_manager=token_manager)
         self.token_manager = token_manager
-        self.client_id = client_id
         self._keep_alive_timeout: int = keep_alive_timeout
         self._heartbeat: int = min(self._keep_alive_timeout, 25)
         self.session_id = None

@@ -1,14 +1,7 @@
-from collections.abc import Mapping
-from marshmallow import Schema, fields, validate, INCLUDE, post_load, EXCLUDE
-from marshmallow_enum import EnumField
-
-from dataclasses import dataclass, asdict
-from enum import StrEnum
-from requeue.fstream.models import FQueueMessage, FQueueEvent
+from dataclasses import dataclass
 import typing
-
-
-from retwitch.models import TokenResponse
+from collections.abc import Mapping
+from enum import StrEnum
 
 
 class EventType(StrEnum):
@@ -31,39 +24,6 @@ class RetwitchEvent:
     @property
     def message(self) -> str | None:
         return None
-
-    def map_to_fqueue_message(self, source: str = 'retwitch_getter') -> FQueueMessage:
-        event_type = self.event_type.name
-        return FQueueMessage(
-            event=event_type,
-            source=source,
-            data=FQueueEvent(
-                event_type=event_type,
-                billing_system=None,
-                user_name=self.user_name,
-                amount=None,
-                currency=None,
-                message=self.message,
-                event=self.event,
-            ),
-        )
-
-
-class RetwitchEventSchema(Schema):
-    event_type = EnumField(EventType, by_value=True, required=True)
-    user_id = fields.Str(required=False, allow_none=True)
-    user_login = fields.Str(required=False, allow_none=True)
-    user_name = fields.Str(required=False, allow_none=True)
-    event = fields.Dict(
-        keys=fields.Str(), values=fields.Raw(allow_none=True), allow_none=True
-    )
-
-    class Meta:
-        unknown = INCLUDE
-
-    @post_load
-    def make_obj(self, data: Mapping[str, typing.Any], **_):
-        return RetwitchEvent(**data)
 
 
 class EventRaid(RetwitchEvent):
@@ -116,6 +76,7 @@ def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent 
     sub_type = data.get('metadata', {}).get('subscription_type', None)
     event_type = EventType(sub_type)
     event = data.get('payload', {}).get('event', {})
+
     match event_type:
         case EventType.CHANNEL_RAID:
             return EventRaid(
@@ -192,86 +153,3 @@ def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent 
                     'duration_months': event.get('duration_months', 0),
                 },
             )
-
-
-class MetadataSchema(Schema):
-    message_id = fields.Str(required=True)
-    message_type = fields.Str(
-        required=True,
-        validate=validate.OneOf(
-            [
-                'session_welcome',
-                'notification',
-                'session_keepalive',
-                'session_reconnect',
-                'revocation',
-            ]
-        ),
-    )
-    message_timestamp = fields.DateTime(required=True)
-
-    # Optional fields for notification type
-    subscription_type = fields.Str(required=False)
-    subscription_version = fields.Str(required=False)
-
-    class Meta:
-        unknown = INCLUDE
-
-
-class SessionSchema(Schema):
-    id = fields.Str(required=True)
-    status = fields.Str(
-        required=True,
-        validate=validate.OneOf(['connected', 'disconnected', 'reconnecting']),
-    )
-    connected_at = fields.DateTime(required=True)
-    keepalive_timeout_seconds = fields.Int(required=False, allow_none=True)
-    reconnect_url = fields.Str(required=False, allow_none=True)
-    recovery_url = fields.Str(required=False, allow_none=True)
-
-    class Meta:
-        unknown = INCLUDE
-
-
-class PayloadSchema(Schema):
-    session = fields.Nested(SessionSchema, required=False)
-
-    # Add other possible payload fields here if needed
-    class Meta:
-        unknown = INCLUDE
-
-
-class EventSchema(Schema):
-    metadata = fields.Nested(MetadataSchema, required=True)
-    payload = fields.Nested(PayloadSchema, required=True)
-
-    class Meta:
-        unknown = INCLUDE
-
-
-class TokenResponseSchema(Schema):
-    access_token = fields.Str(required=True)
-    expires_in = fields.Int(required=True)
-    token_type = fields.Str(required=True)
-    refresh_token = fields.Str(required=False)
-
-    class Meta:
-        unknown = EXCLUDE
-
-    @post_load
-    def create_model(self, data: dict[str, typing.Any], **_) -> TokenResponse:
-        return TokenResponse(**data)
-
-
-def promote_event(event: RetwitchEvent) -> RetwitchEvent:
-    mapping: dict[EventType, type[RetwitchEvent]] = {
-        EventType.CHANNEL_FOLLOW: EventChannelFollow,
-        EventType.CHANNEL_RAID: EventRaid,
-        EventType.CHANNEL_RESUBSCRIBE: EventChannelResubscribeMessage,
-        EventType.CHANNEL_SUBSCRIBE: EventChannelSubscribe,
-        EventType.CUSTOM_REWARD: EventCustomReward,
-        EventType.CHANNEL_MESSAGE: EventChannelMessage,
-    }
-
-    cls = mapping.get(event.event_type, RetwitchEvent)
-    return cls(**asdict(event))

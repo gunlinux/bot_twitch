@@ -10,7 +10,7 @@ from pathlib import Path
 from requeue.fstream.models import FQueueMessage, FQueueEvent
 from requeue.sender.sender import SenderABC
 
-from retwitch.schemas import (
+from retwitch.schemas.events import (
     EventType,
     RetwitchEvent,
 )
