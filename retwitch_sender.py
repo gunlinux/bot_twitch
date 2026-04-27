@@ -5,8 +5,9 @@ from faststream.rabbit import RabbitBroker
 from requeue.fstream.models import FQueueMessage
 from requeue.fstream.consumer import RabbitConsumer
 
-from retwitch.token import TokenManager
+from retwitch.token.token_manager import TokenManager
 from retwitch.token.token_store import TokenStore
+from retwitch.token.token_oauth import TwitchAuth
 from retwitch.bot import SenderBotClient
 from retwitch.reqs import TwitchAccessError
 from retwitch import settings
@@ -42,8 +43,10 @@ async def main():
 
     token_store = TokenStore(settings.TOKEN_FILE)
     token_manager = TokenManager(
-        client_id=settings.RECLIENT_ID,
-        client_secret=settings.RECLIENT_SECRET,
+        twitch_auth=TwitchAuth(
+            client_id=settings.RECLIENT_ID,
+            client_secret=settings.RECLIENT_SECRET,
+        ),
         token_store=token_store,
     )
     token_manager.load_real_token()
@@ -51,7 +54,6 @@ async def main():
     broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
     bot = SenderBotClient(
         token_manager=token_manager,
-        client_id=settings.RECLIENT_ID,
         user_id=settings.REBOT_ID,
         broadcaster_user_id=settings.REOWNER_ID,
     )

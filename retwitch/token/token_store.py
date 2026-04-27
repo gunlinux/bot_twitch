@@ -4,7 +4,7 @@ import json
 
 from pathlib import Path
 
-from retwitch.token import TokenResponse
+from retwitch.models import TokenResponse
 from retwitch.schemas.token import TokenResponseSchema
 from retwitch.utils import logger_setup
 

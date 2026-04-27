@@ -5,7 +5,8 @@ from collections.abc import Callable, Awaitable
 from dotenv import load_dotenv
 from faststream.rabbit import RabbitBroker, RabbitExchange
 
-from retwitch.token import TokenManager
+from retwitch.token.token_manager import TokenManager
+from retwitch.token.token_oauth import TwitchAuth
 from retwitch.token.token_store import TokenStore
 from retwitch.bot import BotClient, ChannelBotClient
 from retwitch.schemas.events import RetwitchEvent
@@ -37,18 +38,17 @@ async def main():
     bot_id: str = os.getenv('REBOT_ID', '')
 
     token_store = TokenStore(token_file=settings.TOKEN_FILE)
-    token_manager = TokenManager(
-        client_id=client_id, client_secret=client_secret, token_store=token_store
-    )
+    twitch_auth = TwitchAuth(client_id=client_id, client_secret=client_secret)
+    token_manager = TokenManager(twitch_auth=twitch_auth, token_store=token_store)
     token_manager.load_real_token()
     await token_manager.refresh_token()
     token_manager.save_real_token()
     channel_token_store = TokenStore(
         token_file=settings.CHANNEL_TOKEN_FILE,
     )
+    channel_auth = TwitchAuth(client_id=client_id, client_secret=client_secret)
     channel_token_manager: TokenManager = TokenManager(
-        client_id=client_id,
-        client_secret=client_secret,
+        twitch_auth=channel_auth,
         token_store=channel_token_store,
     )
     channel_token_manager.load_real_token()
@@ -62,13 +62,11 @@ async def main():
 
     bot = BotClient(
         token_manager=token_manager,
-        client_id=client_id,
         user_id=bot_id,
         broadcaster_user_id=owner_id,
     )
     bot_channel = ChannelBotClient(
         token_manager=channel_token_manager,
-        client_id=client_id,
         user_id=bot_id,
         broadcaster_user_id=owner_id,
     )

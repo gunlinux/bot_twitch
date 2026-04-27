@@ -4,7 +4,7 @@ import logging
 
 from collections.abc import Mapping
 from http import HTTPStatus
-from retwitch.token import TokenManager
+from retwitch.token.token_manager import TokenManager
 
 logger = logging.getLogger('twitchbot')
 
@@ -17,9 +17,8 @@ class TwitchAccessError(Exception): ...
 
 
 class HttpReqs:
-    def __init__(self, token_manager: TokenManager, client_id: str) -> None:
+    def __init__(self, token_manager: TokenManager) -> None:
         self.token_manager = token_manager
-        self.client_id = client_id
 
     async def default_headers(
         self, **extra_headers: Mapping[str, str]
@@ -31,7 +30,7 @@ class HttpReqs:
             'Mapping[str, str]',
             {
                 'Authorization': f'Bearer {token}',
-                'Client-Id': self.client_id,
+                'Client-Id': self.token_manager.client_id,
                 'Content-Type': 'application/json',
                 **extra_headers,
             },

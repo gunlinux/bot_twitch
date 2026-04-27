@@ -2,8 +2,9 @@ import asyncio
 import os
 import sys
 import logging
-from retwitch.token import TokenManager
+from retwitch.token.token_manager import TokenManager
 from retwitch.token.token_store import TokenStore
+from retwitch.token.token_oauth import TwitchAuth
 import dotenv
 from retwitch import settings
 
@@ -15,9 +16,12 @@ async def main():
     client_id = os.getenv('RECLIENT_ID', '')
     client_secret = os.getenv('RECLIENT_SECRET', '')
     token_store = TokenStore(token_file=settings.TOKEN_FILE)
-    token_manager: TokenManager = TokenManager(
+    twitch_auth = TwitchAuth(
         client_id=client_id,
         client_secret=client_secret,
+    )
+    token_manager: TokenManager = TokenManager(
+        twitch_auth=twitch_auth,
         token_store=token_store,
     )
 
@@ -39,8 +43,7 @@ async def main():
         file = sys.argv[2]
         token_store = TokenStore(token_file=file)
         token_manager: TokenManager = TokenManager(
-            client_id=client_id,
-            client_secret=client_secret,
+            twitch_auth=twitch_auth,
             token_store=token_store,
         )
         await token_manager.get_token_from_code(code=code)
