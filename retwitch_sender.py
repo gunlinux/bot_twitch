@@ -6,6 +6,7 @@ from requeue.fstream.models import FQueueMessage
 from requeue.fstream.consumer import RabbitConsumer
 
 from retwitch.token import TokenManager
+from retwitch.token.token_store import TokenStore
 from retwitch.bot import SenderBotClient
 from retwitch.reqs import TwitchAccessError
 from retwitch import settings
@@ -39,8 +40,11 @@ class SenderConsumer:
 async def main():
     load_dotenv()
 
+    token_store = TokenStore(settings.TOKEN_FILE)
     token_manager = TokenManager(
-        client_id=settings.RECLIENT_ID, client_secret=settings.RECLIENT_SECRET
+        client_id=settings.RECLIENT_ID,
+        client_secret=settings.RECLIENT_SECRET,
+        token_store=token_store,
     )
     token_manager.load_real_token()
 

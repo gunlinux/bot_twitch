@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from faststream.rabbit import RabbitBroker, RabbitExchange
 
 from retwitch.token import TokenManager
+from retwitch.token.token_store import TokenStore
 from retwitch.bot import BotClient, ChannelBotClient
 from retwitch.schemas.events import RetwitchEvent
 from retwitch import settings
@@ -35,15 +36,20 @@ async def main():
     owner_id: str = os.getenv('REOWNER_ID', '')
     bot_id: str = os.getenv('REBOT_ID', '')
 
-    token_manager = TokenManager(client_id=client_id, client_secret=client_secret)
+    token_store = TokenStore(token_file=settings.TOKEN_FILE)
+    token_manager = TokenManager(
+        client_id=client_id, client_secret=client_secret, token_store=token_store
+    )
     token_manager.load_real_token()
     await token_manager.refresh_token()
     token_manager.save_real_token()
-
+    channel_token_store = TokenStore(
+        token_file=settings.CHANNEL_TOKEN_FILE,
+    )
     channel_token_manager: TokenManager = TokenManager(
         client_id=client_id,
         client_secret=client_secret,
-        token_file=settings.CHANNEL_TOKEN_FILE,
+        token_store=channel_token_store,
     )
     channel_token_manager.load_real_token()
     await channel_token_manager.refresh_token()

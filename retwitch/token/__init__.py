@@ -1,17 +1,14 @@
 import logging
 import typing
-import json
 import time
-from pathlib import Path
 from http import HTTPStatus
 
 from urllib.parse import urlencode
 from collections.abc import Mapping
-from dataclasses import asdict
 
 import aiohttp
-from retwitch import settings
 from retwitch.schemas.token import TokenResponseSchema
+from retwitch.token.token_store import TokenStore
 
 if typing.TYPE_CHECKING:
     from retwitch.models import TokenResponse
@@ -48,13 +45,13 @@ class TokenManager:
         self,
         client_id: str,
         client_secret: str,
+        token_store: TokenStore,
         redirect_uri: str = 'https://gunlinux.ru/callback',
-        token_file: str = settings.TOKEN_FILE,
     ):
         self.client_id: str = client_id
         self.client_secret: str = client_secret
-        self.token_file: str = token_file
         self.redirect_uri: str = redirect_uri
+        self._token_store = token_store
         self._token: TokenResponse | None = None
 
     def get_headers(self, **kwargs: dict[str, str]) -> Mapping[str, str]:
@@ -135,21 +132,10 @@ class TokenManager:
     def save_real_token(self) -> None:
         if not self._token:
             raise TokenUnsetError
-        path = Path(self.token_file)
-        with path.open(mode='w') as f:
-            json.dump(asdict(self._token), f)
+        self._token_store.save_real_token(self._token)
 
     def load_real_token(self) -> None:
-        path = Path(self.token_file)
-        new_token: TokenResponse | None = None
-        if path.exists():
-            with path.open(mode='r') as f:
-                logger.info('loading_token file from %s', self.token_file)
-                new_token = typing.cast(
-                    'TokenResponse', TokenResponseSchema().load(json.load(f))
-                )
-        if new_token:
-            self._token = new_token
+        self._token = self._token_store.load_real_token()
 
     def generate_code_url(self) -> str:
         base_url: str = TWITCH_AUTH
