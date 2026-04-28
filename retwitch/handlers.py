@@ -1,10 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Callable
-from typing import Any
 import typing
-from dataclasses import dataclass
 from pathlib import Path
+from retwitch.models.commands import Command
+from retwitch.command_registry import CommandRegistry
 
 
 from requeue.fstream.models import FQueueMessage, FQueueEvent
@@ -12,46 +11,31 @@ from requeue.sender.sender import SenderABC
 
 from retwitch.schemas.events import (
     EventType,
-    RetwitchEvent,
 )
-
-from collections.abc import Awaitable
-from typing import Protocol, runtime_checkable
 
 
 logger = logging.getLogger('retwitch.handlers')
 logger.setLevel(logging.DEBUG)
 
 
-@runtime_checkable
-class CommandRunner(Protocol):
-    __name__: str
-
-    async def __call__(
-        self,
-        event: RetwitchEvent,
-        post: Awaitable[Any] | Callable[..., Any] | None = None,
-        data: dict[str, str] | None = None,
-    ) -> None: ...
-
-
-@dataclass
-class Command:
-    name: str
-    data: typing.Mapping | None = None
-    real_runner: Callable[..., Any] | None = None
-
-
 class EventHandler(ABC):
     def __init__(
-        self, sender: SenderABC | None, admin: str | None, command_dir: str = ''
+        self,
+        sender: SenderABC | None,
+        admin: str | None,
+        command_registry: CommandRegistry,
+        command_dir: str = '',
     ) -> None:
-        self.commands: dict[str, Command] = {}
+        self._command_registry = command_registry
         self.sender: SenderABC | None = sender
         self.admin = admin
         self.command_dir = command_dir
-        self.register(Command(name='$reset', real_runner=self.reload_raw_commands))
-        self.register(Command(name='$reload', real_runner=self.reload_raw_commands))
+        self._command_registry.register(
+            Command(name='$reset', real_runner=self.reload_raw_commands)
+        )
+        self._command_registry.register(
+            Command(name='$reload', real_runner=self.reload_raw_commands)
+        )
 
     @abstractmethod
     async def handle_event(self, event: FQueueEvent) -> None:
@@ -60,24 +44,11 @@ class EventHandler(ABC):
     @abstractmethod
     async def on_message(self, message: FQueueMessage) -> None: ...
 
-    def register(self, command: Command) -> None:
-        logger.debug('Successfully registered command %s', command.name)
-        self.commands[command.name] = command
-        if command.name[0] not in '$!':
-            self.commands[f'!{command.name}'] = command
-
     async def chat(self, mssg: str) -> None:
         if self.sender is not None:
             await self.sender.send_message(mssg)
         else:
             logger.error('Cannot send message: sender is not initialized')
-
-    def _clear_raw_commands(self) -> None:
-        self.commands = {
-            command_name: command
-            for command_name, command in self.commands.items()
-            if command.real_runner is not None
-        }
 
     def _get_commands_from_dir(self) -> list[Command]:
         # Get all files matching the '*.md' pattern
@@ -106,9 +77,13 @@ class EventHandler(ABC):
         return out
 
     async def reload_raw_commands(self, _: FQueueEvent) -> None:
-        self._clear_raw_commands()
+        self._command_registry.clear_raw_commands()
         for command in self._get_commands_from_dir():
-            self.register(command)
+            self._command_registry.register(command)
+
+    def register(self, command: Command) -> None:
+        logger.debug('Successfully registered command %s', command.name)
+        self._command_registry.register(command)
 
 
 class RetwitchEventHandler(EventHandler):
@@ -120,61 +95,17 @@ class RetwitchEventHandler(EventHandler):
 
     @typing.override
     async def handle_event(self, event: FQueueEvent) -> None:
-        if event.event_type == EventType.CHANNEL_FOLLOW.name:
-            await self._follow(event)
+        if event.event_type in [e.name for e in EventType]:
+            await self._chat_notify(event)
 
-        if event.event_type == EventType.CHANNEL_SUBSCRIBE.name:
-            await self._subscribe(event)
-
-        if event.event_type == EventType.CHANNEL_RESUBSCRIBE.name:
-            await self._resubscribe(event)
-
-        if event.event_type == EventType.CHANNEL_RAID.name:
-            await self._channel_raid(event)
-
-        if event.event_type == EventType.CHANNEL_MESSAGE.name:
-            await self.run_command(event)
-
-        if event.event_type == EventType.CUSTOM_REWARD.name:
-            await self._custom_reward(event)
-
-    async def _follow(self, event: FQueueEvent) -> None:
-        logger.info('donat.event _follow')
-        if event.message:
-            await self.chat(event.message)
-
-    async def _subscribe(self, event: FQueueEvent) -> None:
-        logger.info('donat.event _subscribe')
-        if event.message:
-            await self.chat(event.message)
-
-    async def _resubscribe(self, event: FQueueEvent) -> None:
-        logger.info('donat.event _resubscribe')
-        if event.message:
-            await self.chat(event.message)
-
-    async def _channel_raid(self, event: FQueueEvent) -> None:
-        logger.info('donat.event _channel_raid')
-        if event.message:
-            await self.chat(event.message)
-
-    async def _custom_reward(self, event: FQueueEvent) -> None:
-        logger.info('donat.event _custom_reward %s', event)
+    async def _chat_notify(self, event: FQueueEvent) -> None:
+        logger.info('donat.event %s', event.event_type)
         if event.message:
             await self.chat(event.message)
 
     async def run_command(self, event: FQueueEvent) -> None:
         logger.debug('Running command for event %s', event)
-        for command_name, command in self.commands.items():
-            if (
-                event
-                and event.message
-                and event.message.lower().startswith(command_name.lower())
-            ):
-                logger.debug('detected command: %s', command)
-                if command.real_runner is None and command.data:
-                    message = command.data.get('text')
-                else:
-                    message = await command.real_runner(event)
-                if message:
-                    await self.chat(typing.cast('str', message))
+        if event_message := event.message:
+            message = await self._command_registry.run(event_message, event)
+            if message:
+                await self.chat(typing.cast('str', message))
