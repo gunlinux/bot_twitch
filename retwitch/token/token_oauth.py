@@ -36,7 +36,7 @@ class TwitchAuth:
         redirect_uri: str = 'https://gunlinux.ru/callback',
     ) -> None:
         self._client_id = client_id
-        self._client_secret = (client_secret,)
+        self._client_secret = client_secret
         self._redirect_uri = redirect_uri
 
     @property
