@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 # fstream
 
 rabbit_url: str = os.environ.get('RABBIT_URL', 'amqp://user:password@localhost:5672/')
@@ -27,4 +26,3 @@ scripts_path: str = 'local_events/scripts/'
 LOCAL_EVENTS = 'local_events'
 TWITCH_OUT = 'twitch_out'
 TWITCH_EVENTS = 'twitch_events'
-

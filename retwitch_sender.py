@@ -1,6 +1,5 @@
 import asyncio
 
-from dotenv import load_dotenv
 from faststream.rabbit import RabbitBroker
 from requeue.fstream.models import FQueueMessage
 from requeue.fstream.consumer import RabbitConsumer
@@ -39,8 +38,6 @@ class SenderConsumer:
 
 
 async def main():
-    load_dotenv()
-
     token_store = TokenStore(settings.TOKEN_FILE)
     token_manager = TokenManager(
         twitch_auth=TwitchAuth(

@@ -1,20 +1,17 @@
 import asyncio
-import os
 import sys
 import logging
 from retwitch.token.token_manager import TokenManager
 from retwitch.token.token_store import TokenStore
 from retwitch.token.token_oauth import TwitchAuth
-import dotenv
 from retwitch import settings
 
 logger = logging.getLogger('twitchbot')
 
 
 async def main():
-    dotenv.load_dotenv()
-    client_id = os.getenv('RECLIENT_ID', '')
-    client_secret = os.getenv('RECLIENT_SECRET', '')
+    client_id = settings.RECLIENT_ID
+    client_secret = settings.RECLIENT_SECRET
     token_store = TokenStore(token_file=settings.TOKEN_FILE)
     twitch_auth = TwitchAuth(
         client_id=client_id,
