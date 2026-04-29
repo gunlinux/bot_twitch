@@ -95,6 +95,9 @@ class RetwitchEventHandler(EventHandler):
 
     @typing.override
     async def handle_event(self, event: FQueueEvent) -> None:
+        if event.event_type == EventType.CHANNEL_MESSAGE:
+            # ignoring just chat message
+            return
         if event.event_type in [e.name for e in EventType]:
             await self._chat_notify(event)
 
