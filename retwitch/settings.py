@@ -10,12 +10,6 @@ rabbit_url: str = os.environ.get('RABBIT_URL', 'amqp://user:password@localhost:5
 rabbit_vhost: str = os.environ.get('RABBIT_VHOST', 'gunlinux_bot')
 rabbit_exchange: str = os.environ.get('RABBIT_EXCHANGE', 'twitch_getter')
 
-# Beer consumer
-BEER_URL: str = os.environ.get('BEER_URL', 'http://127.0.0.1:6016/donate')
-
-# Donats getter
-DA_ACCESS_TOKEN: str = os.environ.get('DA_ACCESS_TOKEN', '')
-
 # Retwitch
 RECLIENT_ID: str = os.environ.get('RECLIENT_ID', '')
 RECLIENT_SECRET: str = os.environ.get('RECLIENT_SECRET', '')
@@ -31,14 +25,6 @@ scripts_path: str = 'local_events/scripts/'
 
 # QUEUES
 LOCAL_EVENTS = 'local_events'
-BEER_STAT = 'bs_donats'
-DONATS_EVENTS = 'da_events'
 TWITCH_OUT = 'twitch_out'
 TWITCH_EVENTS = 'twitch_events'
 
-currencies: dict[str, float] = {
-    'USD': 80,
-    'RUB': 1,
-    'EUR': 90,
-    'POINTS': 1,
-}
