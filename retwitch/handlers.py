@@ -109,6 +109,10 @@ class RetwitchEventHandler(EventHandler):
     async def run_command(self, event: FQueueEvent) -> None:
         logger.debug('Running command for event %s', event)
         if event_message := event.message:
+            command = self._command_registry._get_command(event_message)  # noqa: SLF001
+            if command and command.name.startswith('$') and (event.user_name or '').lower() != (self.admin or '').lower():
+                logger.debug('non-admin %s attempted admin command %s', event.user_name, command.name)
+                return
             message = await self._command_registry.run(event_message, event)
             if message:
                 await self.chat(typing.cast('str', message))
