@@ -35,7 +35,10 @@ unfixable = ["B"]
 # 4. Ignore `E402` (import violations) in all `__init__.py` files, and in selected subdirectories.
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402"]
-"**/{tests,docs,tools}/*" = ["E402"]
+"**/{tests,docs,tools}/*" = ["E402", "S106"]
+"retwitch_getter.py" = ["E402"]
+"retwitch_sender.py" = ["E402"]
+"retwitch_worker.py" = ["E402"]
 
 [tool.ruff.format]
 # 5. Use single quotes in `ruff format`.
