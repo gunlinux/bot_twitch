@@ -5,7 +5,10 @@ load_dotenv()
 
 # fstream
 
-rabbit_url: str = os.environ.get('RABBIT_URL', 'amqp://user:password@localhost:5672/')
+_rabbit_url = os.environ.get('RABBIT_URL')
+if not _rabbit_url:
+    raise RuntimeError('RABBIT_URL is not configured — set it in .env or environment')
+rabbit_url: str = _rabbit_url
 rabbit_vhost: str = os.environ.get('RABBIT_VHOST', 'gunlinux_bot')
 rabbit_exchange: str = os.environ.get('RABBIT_EXCHANGE', 'twitch_getter')
 
