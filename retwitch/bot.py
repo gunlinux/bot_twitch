@@ -144,8 +144,10 @@ class BotClient:
                     if not is_reconnect:
                         subs = await self.http_reqs.get_subs()
                         for sub in subs:
-                            logger.info('deleting sub %s', sub.get('id'))
-                            await self.http_reqs.delete_event_sub(eventsub_id=sub.get('id'))
+                            sub_session = sub.get('transport', {}).get('session_id', '')
+                            if sub_session != self.session_id:
+                                logger.info('deleting stale sub %s (session %s)', sub.get('id'), sub_session)
+                                await self.http_reqs.delete_event_sub(eventsub_id=sub.get('id'))
 
                     await self.create_sub(session_id=self.session_id)
 

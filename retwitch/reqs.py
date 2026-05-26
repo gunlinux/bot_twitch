@@ -56,9 +56,21 @@ class HttpReqs:
 
     async def get_subs(self):
         session = self._get_session()
-        async with session.get(EVENT_SUB, headers=await self.default_headers()) as resp:
-            data = await resp.json()
-            return data.get('data', [])
+        results = []
+        cursor: str | None = None
+        while True:
+            params = {}
+            if cursor:
+                params['after'] = cursor
+            async with session.get(
+                EVENT_SUB, headers=await self.default_headers(), params=params or None
+            ) as resp:
+                data = await resp.json()
+                results.extend(data.get('data', []))
+                cursor = data.get('pagination', {}).get('cursor')
+                if not cursor:
+                    break
+        return results
 
     async def create_sub_chat_message(
         self, session_id: str, broadcaster_user_id: str, user_id: str
