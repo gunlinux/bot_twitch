@@ -15,7 +15,6 @@ from retwitch.schemas.events import (
 
 
 logger = logging.getLogger('retwitch.handlers')
-logger.setLevel(logging.DEBUG)
 
 
 class EventHandler(ABC):
@@ -76,7 +75,7 @@ class EventHandler(ABC):
                 )
         return out
 
-    async def reload_raw_commands(self, _: FQueueEvent) -> None:
+    async def reload_raw_commands(self, _: FQueueEvent | None) -> None:
         self._command_registry.clear_raw_commands()
         for command in self._get_commands_from_dir():
             self._command_registry.register(command)

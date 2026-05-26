@@ -18,7 +18,7 @@ from retwitch.reqs import HttpReqs
 logger = logging.getLogger('twitchbot')
 
 
-WS_URL = 'wss://eventsub.wss.twitch.tv/ws?keep_alive_timeout=30'
+WS_URL = 'wss://eventsub.wss.twitch.tv/ws'
 
 
 class BotClient:
@@ -33,7 +33,7 @@ class BotClient:
         self.token_manager = token_manager
         self._keep_alive_timeout: int = keep_alive_timeout
         self._heartbeat: int = min(self._keep_alive_timeout, 25)
-        self.session_id = None
+        self.session_id: str | None = None
         self.user_id: str = user_id
         self.broadcaster_user_id: str = broadcaster_user_id
         self.lastseen: float | None = None
@@ -56,7 +56,7 @@ class BotClient:
 
     async def process_event(self, event: Mapping[str, typing.Any]) -> None:
         if self._socket is None:
-            raise ValueError('Dame')
+            raise ValueError('socket_not_connected')
         match event['metadata']['message_type']:
             case 'session_welcome':
                 logger.info('got welcome message')
@@ -84,7 +84,7 @@ class BotClient:
 
     async def _listen(self):
         logger.info('start listen')
-        while 1:
+        while True:
             await asyncio.sleep(self._keep_alive_timeout)
             if self.lastseen is None or not self._socket:
                 continue
@@ -100,7 +100,7 @@ class BotClient:
         await asyncio.gather(self.run_ws(), self._listen())
 
     async def run_ws(self):
-        connect_url = 'wss://eventsub.wss.twitch.tv/ws'
+        connect_url = WS_URL
         is_reconnect = False
         while True:
             async with aiohttp.ClientSession() as session:
@@ -120,7 +120,10 @@ class BotClient:
                 )
                 await self.process_event(event)
                 if not self.session_id:
-                    raise ValueError('no_session_id')
+                    logger.warning('no session_id after welcome, reconnecting')
+                    connect_url = WS_URL
+                    is_reconnect = False
+                    continue
 
                 if not is_reconnect:
                     subs = await self.http_reqs.get_subs()
@@ -149,7 +152,7 @@ class BotClient:
                 self._reconnect_url = None
                 is_reconnect = True
             else:
-                connect_url = 'wss://eventsub.wss.twitch.tv/ws'
+                connect_url = WS_URL
                 is_reconnect = False
 
 

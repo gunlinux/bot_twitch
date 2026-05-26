@@ -27,14 +27,14 @@ async def main():
         print(url)
         sys.exit()
 
-    if len(sys.argv) == 1 + 1:
+    if len(sys.argv) == 2:  # noqa: PLR2004
         # only code -> save to default file
         code = sys.argv[1]
         await token_manager.get_token_from_code(code=code)
         token_manager.save_real_token()
         return
 
-    if len(sys.argv) == 1 + 1 + 1:
+    if len(sys.argv) == 3:  # noqa: PLR2004
         # code + file name -> + channel_token
         code = sys.argv[1]
         file = sys.argv[2]
