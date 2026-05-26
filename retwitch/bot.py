@@ -38,6 +38,7 @@ class BotClient:
         self.broadcaster_user_id: str = broadcaster_user_id
         self.lastseen: float | None = None
         self._socket = None
+        self._reconnect_url: str | None = None
         self.handler: Callable[[RetwitchEvent], Awaitable[None]] | None = None
 
     async def create_sub(self, session_id: str) -> None:
@@ -67,6 +68,9 @@ class BotClient:
                 self.lastseen = time()
 
             case 'session_reconnect':
+                reconnect_url = event['payload']['session']['reconnect_url']
+                logger.info('session reconnect requested, url=%s', reconnect_url)
+                self._reconnect_url = reconnect_url
                 await self._socket.close()
 
             case 'revocation':
@@ -96,15 +100,18 @@ class BotClient:
         await asyncio.gather(self.run_ws(), self._listen())
 
     async def run_ws(self):
+        connect_url = 'wss://eventsub.wss.twitch.tv/ws'
+        is_reconnect = False
         while True:
             async with aiohttp.ClientSession() as session:
                 params = {
                     'keepalive_timeout_seconds': self._keep_alive_timeout,
                 }
                 self._socket = await session.ws_connect(
-                    'wss://eventsub.wss.twitch.tv/ws',
+                    connect_url,
                     heartbeat=self._heartbeat,
-                    params=params,
+                    # reconnect_url already includes query params
+                    params=params if not is_reconnect else None,
                 )
                 welcome_message: aiohttp.WSMessage = await self._socket.receive()
                 event = typing.cast(
@@ -114,14 +121,16 @@ class BotClient:
                 await self.process_event(event)
                 if not self.session_id:
                     raise ValueError('no_session_id')
-                subs = await self.http_reqs.get_subs()
-                for sub in subs:
-                    logger.info('deleting sub %s', sub.get('id'))
-                    await self.http_reqs.delete_event_sub(eventsub_id=sub.get('id'))
+
+                if not is_reconnect:
+                    subs = await self.http_reqs.get_subs()
+                    for sub in subs:
+                        logger.info('deleting sub %s', sub.get('id'))
+                        await self.http_reqs.delete_event_sub(eventsub_id=sub.get('id'))
 
                 await self.create_sub(session_id=self.session_id)
 
-                logger.info('ready to read subs events ')
+                logger.info('ready to read subs events')
 
                 async for mssg in self._socket:
                     logger.info('got new message: %s', mssg.data)
@@ -134,6 +143,14 @@ class BotClient:
                         logger.warning('cant load event %s', mssg.data, exc_info=e)
                         continue
                     await self.process_event(event)
+
+            if self._reconnect_url:
+                connect_url = self._reconnect_url
+                self._reconnect_url = None
+                is_reconnect = True
+            else:
+                connect_url = 'wss://eventsub.wss.twitch.tv/ws'
+                is_reconnect = False
 
 
 class ChannelBotClient(BotClient):

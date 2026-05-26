@@ -1,8 +1,6 @@
 import asyncio
-import os
 from collections.abc import Callable, Awaitable
 
-from dotenv import load_dotenv
 from faststream.rabbit import RabbitBroker, RabbitExchange
 
 from retwitch.token.token_manager import TokenManager
@@ -31,11 +29,10 @@ async def init_process(
 
 
 async def main():
-    load_dotenv()
-    client_id: str = os.getenv('RECLIENT_ID', '')
-    client_secret: str = os.getenv('RECLIENT_SECRET', '')
-    owner_id: str = os.getenv('REOWNER_ID', '')
-    bot_id: str = os.getenv('REBOT_ID', '')
+    client_id: str = settings.RECLIENT_ID
+    client_secret: str = settings.RECLIENT_SECRET
+    owner_id: str = settings.REOWNER_ID
+    bot_id: str = settings.REBOT_ID
 
     token_store = TokenStore(token_file=settings.TOKEN_FILE)
     twitch_auth = TwitchAuth(client_id=client_id, client_secret=client_secret)
