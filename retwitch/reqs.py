@@ -183,7 +183,6 @@ class HttpReqs:
             'sender_id': bot_user_id,
             'message': message,
         }
-        print(data)
         async with session.post(
             MESSAGE_ENDPOINT, headers=await self.default_headers(), json=data
         ) as resp:
