@@ -26,6 +26,7 @@ async def main() -> None:
         admin='gunlinux',
         command_dir=settings.COMMAND_DIR,
     )
+    retwitch_handler.bootstrap_admin_commands()
     commands = [
         Command('ауф', real_runner=auf),
         Command('gunlinAuf', real_runner=auf),

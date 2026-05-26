@@ -29,12 +29,6 @@ class EventHandler(ABC):
         self.sender: SenderABC | None = sender
         self.admin = admin
         self.command_dir = command_dir
-        self._command_registry.register(
-            Command(name='$reset', real_runner=self.reload_raw_commands)
-        )
-        self._command_registry.register(
-            Command(name='$reload', real_runner=self.reload_raw_commands)
-        )
 
     @abstractmethod
     async def handle_event(self, event: FQueueEvent) -> None:
@@ -86,6 +80,14 @@ class EventHandler(ABC):
 
 
 class RetwitchEventHandler(EventHandler):
+    def bootstrap_admin_commands(self) -> None:
+        self._command_registry.register(
+            Command(name='$reset', real_runner=self.reload_raw_commands)
+        )
+        self._command_registry.register(
+            Command(name='$reload', real_runner=self.reload_raw_commands)
+        )
+
     @typing.override
     async def on_message(self, message: FQueueMessage) -> None:
         logger.debug('Processing new event from queue')
