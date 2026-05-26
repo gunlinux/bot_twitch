@@ -25,7 +25,7 @@ class CommandRegistry:
             if command.real_runner is not None
         }
 
-    def _get_command(self, message: str) -> Command | None:
+    def get_command(self, message: str) -> Command | None:
         for command_name, command in self.commands.items():
             if message.lower().startswith(command_name.lower()):
                 return command
@@ -34,7 +34,7 @@ class CommandRegistry:
     async def run(self, message: str, event: FQueueEvent) -> str:
         if not message:
             return ''
-        command = self._get_command(message)
+        command = self.get_command(message)
         if not command:
             return ''
 

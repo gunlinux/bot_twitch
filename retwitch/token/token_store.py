@@ -24,7 +24,7 @@ class TokenStore:
             json.dump(asdict(token), f)
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp_path, path)
+        tmp_path.replace(path)
 
     def load_real_token(self) -> TokenResponse | None:
         path = Path(self.token_file)

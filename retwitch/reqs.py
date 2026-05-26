@@ -209,7 +209,11 @@ class HttpReqs:
                     logger.warning('rate limited, retrying after %.1f s', retry_after)
                     await asyncio.sleep(retry_after)
                 elif resp.status >= 500 and attempt < 3:  # noqa: PLR2004
-                    logger.warning('server error %s, retrying (attempt %d)', resp.status, attempt + 1)
+                    logger.warning(
+                        'server error %s, retrying (attempt %d)',
+                        resp.status,
+                        attempt + 1,
+                    )
                     await asyncio.sleep(backoff)
                     backoff = min(backoff * 2, 30.0)
                 else:

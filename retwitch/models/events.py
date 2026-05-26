@@ -74,23 +74,23 @@ class EventChannelResubscribeMessage(RetwitchEvent):
 
 def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent | None:
     sub_type = data.get('metadata', {}).get('subscription_type', None)
-    if sub_type not in EventType._value2member_map_:  # noqa: SLF001
+    if sub_type not in EventType._value2member_map_:
         return None
     event_type = EventType(sub_type)
     event = data.get('payload', {}).get('event', {})
 
+    result: RetwitchEvent | None = None
     match event_type:
         case EventType.CHANNEL_RAID:
-            return EventRaid(
+            result = EventRaid(
                 event_type=event_type,
                 user_id=event['from_broadcaster_user_id'],
                 user_login=event['from_broadcaster_user_login'],
                 user_name=event['from_broadcaster_user_name'],
                 event={'viewers': event['viewers']},
             )
-
         case EventType.CUSTOM_REWARD:
-            return EventCustomReward(
+            result = EventCustomReward(
                 event_type=event_type,
                 user_id=event['user_id'],
                 user_login=event['user_login'],
@@ -102,9 +102,8 @@ def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent 
                     'cost': event.get('reward', {}).get('cost'),
                 },
             )
-
         case EventType.CHANNEL_FOLLOW:
-            return EventChannelFollow(
+            result = EventChannelFollow(
                 event_type=event_type,
                 user_id=event['user_id'],
                 user_login=event['user_login'],
@@ -112,7 +111,7 @@ def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent 
                 event={},
             )
         case EventType.CHANNEL_MESSAGE:
-            return EventChannelMessage(
+            result = EventChannelMessage(
                 event_type=event_type,
                 user_id=event['chatter_user_id'],
                 user_login=event['chatter_user_login'],
@@ -129,7 +128,7 @@ def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent 
                 },
             )
         case EventType.CHANNEL_SUBSCRIBE:
-            return EventChannelSubscribe(
+            result = EventChannelSubscribe(
                 event_type=event_type,
                 user_id=event['user_id'],
                 user_login=event['user_login'],
@@ -140,7 +139,7 @@ def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent 
                 },
             )
         case EventType.CHANNEL_RESUBSCRIBE:
-            return EventChannelResubscribeMessage(
+            result = EventChannelResubscribeMessage(
                 event_type=event_type,
                 user_id=event['user_id'],
                 user_login=event['user_login'],
@@ -155,3 +154,4 @@ def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent 
                     'duration_months': event.get('duration_months', 0),
                 },
             )
+    return result

@@ -69,19 +69,26 @@ class TwitchAuth:
                 ) as resp:
                     if resp.status == HTTPStatus.OK:
                         return typing.cast(
-                            'TokenResponse', TokenResponseSchema().load(await resp.json())
+                            'TokenResponse',
+                            TokenResponseSchema().load(await resp.json()),
                         )
                     if resp.status == HTTPStatus.TOO_MANY_REQUESTS:
                         retry_after = float(resp.headers.get('Retry-After', backoff))
-                        logger.warning('token rate limited, retrying after %.1f s', retry_after)
+                        logger.warning(
+                            'token rate limited, retrying after %.1f s', retry_after
+                        )
                         await asyncio.sleep(retry_after)
                     elif resp.status >= 500 and attempt < 3:  # noqa: PLR2004
-                        logger.warning('token server error %s, retrying (attempt %d)', resp.status, attempt + 1)
+                        logger.warning(
+                            'token server error %s, retrying (attempt %d)',
+                            resp.status,
+                            attempt + 1,
+                        )
                         await asyncio.sleep(backoff)
                         backoff = min(backoff * 2, 30.0)
                     else:
                         raise TokenRequestError(f'Wrong response_status: {resp.status}')  # noqa: TRY003, EM102
-        raise TokenRequestError('Token request failed after retries')  # noqa: TRY003, EM101
+        raise TokenRequestError('Token request failed after retries')  # noqa: TRY003
 
     async def refresh_token(self, token: TokenResponse) -> TokenResponse:
         logger.info('refreshing token')

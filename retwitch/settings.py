@@ -1,10 +1,16 @@
 import os
 
+
+class _RabbitURLNotConfiguredError(RuntimeError):
+    def __init__(self) -> None:
+        super().__init__('RABBIT_URL is not configured — set it in .env or environment')
+
+
 # fstream
 
 _rabbit_url = os.environ.get('RABBIT_URL')
 if not _rabbit_url:
-    raise RuntimeError('RABBIT_URL is not configured — set it in .env or environment')
+    raise _RabbitURLNotConfiguredError
 RABBIT_URL: str = _rabbit_url
 RABBIT_VHOST: str = os.environ.get('RABBIT_VHOST', 'gunlinux_bot')
 RABBIT_EXCHANGE: str = os.environ.get('RABBIT_EXCHANGE', 'twitch_getter')

@@ -18,7 +18,7 @@ from retwitch.reqs import HttpReqs
 """
 
 logger = logging.getLogger('twitchbot')
-
+_rng = random.SystemRandom()
 
 WS_URL = 'wss://eventsub.wss.twitch.tv/ws'
 _DEDUP_MAX_SIZE = 500
@@ -80,19 +80,22 @@ class BotClient:
             case 'revocation':
                 await self._socket.close()
             case _:
-                message_id = event.get('metadata', {}).get('message_id', '')
-                if message_id:
-                    if message_id in self._seen_message_ids:
-                        logger.debug('duplicate message_id %s, skipping', message_id)
-                        return
-                    self._seen_message_ids[message_id] = None
-                    if len(self._seen_message_ids) > _DEDUP_MAX_SIZE:
-                        self._seen_message_ids.popitem(last=False)
-                new_event: RetwitchEvent | None = create_event_from_subevent(event)
-                if not new_event:
-                    return
-                if self.handler:
-                    await self.handler(new_event)
+                await self._handle_notification(event)
+
+    async def _handle_notification(self, event: Mapping[str, typing.Any]) -> None:
+        message_id = event.get('metadata', {}).get('message_id', '')
+        if message_id:
+            if message_id in self._seen_message_ids:
+                logger.debug('duplicate message_id %s, skipping', message_id)
+                return
+            self._seen_message_ids[message_id] = None
+            if len(self._seen_message_ids) > _DEDUP_MAX_SIZE:
+                self._seen_message_ids.popitem(last=False)
+        new_event: RetwitchEvent | None = create_event_from_subevent(event)
+        if not new_event:
+            return
+        if self.handler:
+            await self.handler(new_event)
 
     async def _listen(self):
         logger.info('start listen')
@@ -146,8 +149,14 @@ class BotClient:
                         for sub in subs:
                             sub_session = sub.get('transport', {}).get('session_id', '')
                             if sub_session != self.session_id:
-                                logger.info('deleting stale sub %s (session %s)', sub.get('id'), sub_session)
-                                await self.http_reqs.delete_event_sub(eventsub_id=sub.get('id'))
+                                logger.info(
+                                    'deleting stale sub %s (session %s)',
+                                    sub.get('id'),
+                                    sub_session,
+                                )
+                                await self.http_reqs.delete_event_sub(
+                                    eventsub_id=sub.get('id')
+                                )
 
                     await self.create_sub(session_id=self.session_id)
 
@@ -174,7 +183,7 @@ class BotClient:
             else:
                 connect_url = WS_URL
                 is_reconnect = False
-                jitter = random.uniform(0, backoff * 0.1)
+                jitter = _rng.uniform(0, backoff * 0.1)
                 delay = min(backoff + jitter, 60.0)
                 logger.info('reconnecting in %.1f seconds', delay)
                 await asyncio.sleep(delay)

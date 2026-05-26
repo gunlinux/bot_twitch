@@ -10,7 +10,7 @@ from retwitch.token.token_manager import TokenManager
 from retwitch.token.token_oauth import TwitchAuth
 from retwitch.token.token_store import TokenStore
 from retwitch.bot import BotClient, ChannelBotClient
-from retwitch.schemas.events import RetwitchEvent
+from retwitch.models.events import RetwitchEvent
 from retwitch import settings
 from retwitch.utils import logger_setup
 from retwitch.queue import retwitch_to_queue
