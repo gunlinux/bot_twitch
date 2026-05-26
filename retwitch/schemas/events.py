@@ -1,9 +1,7 @@
-from collections.abc import Mapping
-from marshmallow import Schema, fields, validate, INCLUDE, post_load
+from marshmallow import Schema, fields, validate, INCLUDE
 from marshmallow_enum import EnumField
-import typing
 
-from retwitch.models.events import RetwitchEvent, EventType
+from retwitch.models.events import EventType
 
 
 class RetwitchEventSchema(Schema):
@@ -17,10 +15,6 @@ class RetwitchEventSchema(Schema):
 
     class Meta:
         unknown = INCLUDE
-
-    @post_load
-    def make_obj(self, data: Mapping[str, typing.Any], **_):
-        return RetwitchEvent(**data)
 
 
 class MetadataSchema(Schema):
