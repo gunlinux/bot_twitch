@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 import typing
 import json
+import os
 
 from pathlib import Path
 
@@ -18,8 +19,12 @@ class TokenStore:
 
     def save_real_token(self, token: TokenResponse) -> None:
         path = Path(self.token_file)
-        with path.open(mode='w') as f:
+        tmp_path = path.with_suffix('.tmp')
+        with tmp_path.open(mode='w') as f:
             json.dump(asdict(token), f)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, path)
 
     def load_real_token(self) -> TokenResponse | None:
         path = Path(self.token_file)
