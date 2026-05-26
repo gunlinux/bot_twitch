@@ -3,6 +3,7 @@ import asyncio
 import typing
 import logging
 import json
+import random
 from time import time
 
 import aiohttp
@@ -102,50 +103,56 @@ class BotClient:
     async def run_ws(self):
         connect_url = WS_URL
         is_reconnect = False
+        backoff = 1.0
         while True:
-            async with aiohttp.ClientSession() as session:
-                params = {
-                    'keepalive_timeout_seconds': self._keep_alive_timeout,
-                }
-                self._socket = await session.ws_connect(
-                    connect_url,
-                    heartbeat=self._heartbeat,
-                    # reconnect_url already includes query params
-                    params=params if not is_reconnect else None,
-                )
-                welcome_message: aiohttp.WSMessage = await self._socket.receive()
-                event = typing.cast(
-                    'Mapping[str, typing.Any]',
-                    EventSchema().load(json.loads(welcome_message.data)),
-                )
-                await self.process_event(event)
-                if not self.session_id:
-                    logger.warning('no session_id after welcome, reconnecting')
-                    connect_url = WS_URL
-                    is_reconnect = False
-                    continue
-
-                if not is_reconnect:
-                    subs = await self.http_reqs.get_subs()
-                    for sub in subs:
-                        logger.info('deleting sub %s', sub.get('id'))
-                        await self.http_reqs.delete_event_sub(eventsub_id=sub.get('id'))
-
-                await self.create_sub(session_id=self.session_id)
-
-                logger.info('ready to read subs events')
-
-                async for mssg in self._socket:
-                    logger.info('got new message: %s', mssg.data)
-                    try:
-                        event = typing.cast(
-                            'Mapping[str, str]',
-                            EventSchema().load(json.loads(mssg.data)),
-                        )
-                    except Exception as e:  # noqa: BLE001
-                        logger.warning('cant load event %s', mssg.data, exc_info=e)
-                        continue
+            try:
+                async with aiohttp.ClientSession() as session:
+                    params = {
+                        'keepalive_timeout_seconds': self._keep_alive_timeout,
+                    }
+                    self._socket = await session.ws_connect(
+                        connect_url,
+                        heartbeat=self._heartbeat,
+                        # reconnect_url already includes query params
+                        params=params if not is_reconnect else None,
+                    )
+                    welcome_message: aiohttp.WSMessage = await self._socket.receive()
+                    event = typing.cast(
+                        'Mapping[str, typing.Any]',
+                        EventSchema().load(json.loads(welcome_message.data)),
+                    )
                     await self.process_event(event)
+                    if not self.session_id:
+                        logger.warning('no session_id after welcome, reconnecting')
+                        connect_url = WS_URL
+                        is_reconnect = False
+                        continue
+
+                    backoff = 1.0
+
+                    if not is_reconnect:
+                        subs = await self.http_reqs.get_subs()
+                        for sub in subs:
+                            logger.info('deleting sub %s', sub.get('id'))
+                            await self.http_reqs.delete_event_sub(eventsub_id=sub.get('id'))
+
+                    await self.create_sub(session_id=self.session_id)
+
+                    logger.info('ready to read subs events')
+
+                    async for mssg in self._socket:
+                        logger.info('got new message: %s', mssg.data)
+                        try:
+                            event = typing.cast(
+                                'Mapping[str, str]',
+                                EventSchema().load(json.loads(mssg.data)),
+                            )
+                        except Exception as e:  # noqa: BLE001
+                            logger.warning('cant load event %s', mssg.data, exc_info=e)
+                            continue
+                        await self.process_event(event)
+            except Exception as e:  # noqa: BLE001
+                logger.warning('ws connection error: %s', e)
 
             if self._reconnect_url:
                 connect_url = self._reconnect_url
@@ -154,6 +161,11 @@ class BotClient:
             else:
                 connect_url = WS_URL
                 is_reconnect = False
+                jitter = random.uniform(0, backoff * 0.1)
+                delay = min(backoff + jitter, 60.0)
+                logger.info('reconnecting in %.1f seconds', delay)
+                await asyncio.sleep(delay)
+                backoff = min(backoff * 2, 60.0)
 
 
 class ChannelBotClient(BotClient):
