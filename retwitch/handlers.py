@@ -44,29 +44,12 @@ class EventHandler(ABC):
             logger.error('Cannot send message: sender is not initialized')
 
     def _get_commands_from_dir(self) -> list[Command]:
-        # Get all files matching the '*.md' pattern
         command_path = Path.cwd() / self.command_dir
-        markdown_files = [
-            f for f in command_path.iterdir() if f.is_file() and f.suffix == '.md'
-        ]
-
         out = []
-        for file in markdown_files:
-            # Construct the full path to each file
-            # Open the file and read its contents
-            data: dict[str, typing.Any] = {}
-            with Path.open(file, 'r'):
-                data['name'] = Path(file).stem
-                data['text'] = file.read_text()
-
-                logger.info('registred command from file %s ', data)
-                out.append(
-                    Command(
-                        f'!{data["name"]}',
-                        real_runner=None,
-                        data=data,
-                    )
-                )
+        for f in command_path.glob('*.md'):
+            data = {'name': f.stem, 'text': f.read_text()}
+            logger.info('registred command from file %s', data)
+            out.append(Command(f'!{f.stem}', real_runner=None, data=data))
         return out
 
     async def reload_raw_commands(self, _: FQueueEvent | None) -> None:
