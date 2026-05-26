@@ -33,8 +33,12 @@ class SenderConsumer:
                 await self.send_message(message)
             except TwitchAccessError as e:
                 await self.bot.token_manager.refresh_token()
-                logger.critical('twitch access error', exc_info=e)
-                raise TwitchAccessError from e
+                logger.warning('twitch access error, retrying once', exc_info=e)
+                try:
+                    await self.send_message(message)
+                except TwitchAccessError as retry_e:
+                    logger.critical('twitch access error after retry', exc_info=retry_e)
+                    raise TwitchAccessError from retry_e
 
 
 async def main():
@@ -47,6 +51,8 @@ async def main():
         token_store=token_store,
     )
     token_manager.load_real_token()
+    await token_manager.refresh_token()
+    token_manager.save_real_token()
 
     broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
     bot = SenderBotClient(
