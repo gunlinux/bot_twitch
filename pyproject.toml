@@ -8,7 +8,6 @@ dependencies = [
     "aiohttp>=3.13.5",
     "faststream[rabbit]>=0.6.7",
     "marshmallow>=3.26.1",
-    "marshmallow-enum>=1.5.1",
     "pyright>=1.1.398",
     "python-dotenv>=1.0.1",
     "requeue>=0.7.1",

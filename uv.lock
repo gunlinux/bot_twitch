@@ -329,18 +329,6 @@ wheels = [
 ]
 
 [[package]]
-name = "marshmallow-enum"
-version = "1.5.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "marshmallow" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/8e/8c/ceecdce57dfd37913143087fffd15f38562a94f0d22823e3c66eac0dca31/marshmallow-enum-1.5.1.tar.gz", hash = "sha256:38e697e11f45a8e64b4a1e664000897c659b60aa57bfa18d44e226a9920b6e58", size = 4013, upload-time = "2019-08-21T01:07:46.254Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c6/59/ef3a3dc499be447098d4a89399beb869f813fee1b5a57d5d79dee2c1bf51/marshmallow_enum-1.5.1-py2.py3-none-any.whl", hash = "sha256:57161ab3dbfde4f57adeb12090f39592e992b9c86d206d02f6bd03ebec60f072", size = 4186, upload-time = "2019-08-21T01:07:44.814Z" },
-]
-
-[[package]]
 name = "multidict"
 version = "6.6.4"
 source = { registry = "https://pypi.org/simple" }
@@ -671,7 +659,6 @@ dependencies = [
     { name = "aiohttp" },
     { name = "faststream", extra = ["rabbit"] },
     { name = "marshmallow" },
-    { name = "marshmallow-enum" },
     { name = "pyright" },
     { name = "python-dotenv" },
     { name = "requeue" },
@@ -691,7 +678,6 @@ requires-dist = [
     { name = "aiohttp", specifier = ">=3.13.5" },
     { name = "faststream", extras = ["rabbit"], specifier = ">=0.6.7" },
     { name = "marshmallow", specifier = ">=3.26.1" },
-    { name = "marshmallow-enum", specifier = ">=1.5.1" },
     { name = "pyright", specifier = ">=1.1.398" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
     { name = "requeue", git = "https://github.com/gunlinux/requeue?branch=main" },

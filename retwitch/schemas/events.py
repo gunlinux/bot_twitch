@@ -1,11 +1,10 @@
 from marshmallow import Schema, fields, validate, INCLUDE
-from marshmallow_enum import EnumField
 
 from retwitch.models.events import EventType
 
 
 class RetwitchEventSchema(Schema):
-    event_type = EnumField(EventType, by_value=True, required=True)
+    event_type = fields.Enum(EventType, by_value=True, required=True)
     user_id = fields.Str(required=False, allow_none=True)
     user_login = fields.Str(required=False, allow_none=True)
     user_name = fields.Str(required=False, allow_none=True)
