@@ -1,4 +1,3 @@
-import pytest
 from retwitch.models.events import (
     EventType,
     create_event_from_subevent,
@@ -33,7 +32,11 @@ def test_unknown_subscription_type_returns_none():
 
 def test_missing_subscription_type_returns_none():
     data = {
-        'metadata': {'message_type': 'notification', 'message_id': 'x', 'message_timestamp': 'x'},
+        'metadata': {
+            'message_type': 'notification',
+            'message_id': 'x',
+            'message_timestamp': 'x',
+        },
         'payload': {'event': {}},
     }
     assert create_event_from_subevent(data) is None
@@ -99,7 +102,13 @@ def test_channel_raid_event():
 def test_channel_subscribe_event():
     data = _make_event(
         EventType.CHANNEL_SUBSCRIBE,
-        {'user_id': 'u3', 'user_login': 'sub', 'user_name': 'Sub', 'tier': '1000', 'is_gift': False},
+        {
+            'user_id': 'u3',
+            'user_login': 'sub',
+            'user_name': 'Sub',
+            'tier': '1000',
+            'is_gift': False,
+        },
     )
     event = create_event_from_subevent(data)
     assert isinstance(event, EventChannelSubscribe)

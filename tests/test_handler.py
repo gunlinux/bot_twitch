@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 from retwitch.handlers import RetwitchEventHandler
 from retwitch.command_registry import CommandRegistry
 from retwitch.models.commands import Command

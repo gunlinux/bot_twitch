@@ -1,5 +1,4 @@
 import pytest
-import asyncio
 from unittest.mock import AsyncMock
 from retwitch.command_registry import CommandRegistry
 from retwitch.models.commands import Command
@@ -38,18 +37,18 @@ def test_get_command_case_insensitive():
     reg = CommandRegistry()
     cmd = Command(name='!auf', real_runner=None, data={'text': 'ауф!'})
     reg.register(cmd)
-    assert reg._get_command('!AUF') is cmd
-    assert reg._get_command('!auf something') is cmd
+    assert reg.get_command('!AUF') is cmd
+    assert reg.get_command('!auf something') is cmd
 
 
 def test_get_command_unknown_returns_none():
     reg = CommandRegistry()
-    assert reg._get_command('!unknown') is None
+    assert reg.get_command('!unknown') is None
 
 
 def test_get_command_empty_string_returns_none():
     reg = CommandRegistry()
-    assert reg._get_command('') is None
+    assert reg.get_command('') is None
 
 
 def test_clear_raw_commands_keeps_real_commands():

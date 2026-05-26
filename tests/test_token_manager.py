@@ -24,8 +24,7 @@ def _make_manager(token: TokenResponse | None = None) -> tuple[TokenManager, Asy
     refreshed = _make_token()
     auth.refresh_token = AsyncMock(return_value=refreshed)
     manager = TokenManager(token_store=store, twitch_auth=auth)
-    if token:
-        manager._token = token
+    manager.load_real_token()
     return manager, auth
 
 
@@ -50,7 +49,7 @@ async def test_get_access_token_refreshes_when_near_expiry():
     # Token expires in REFRESH_TOKEN_DELTA - 10 seconds from now
     token = _make_token(expires_in=REFRESH_TOKEN_DELTA - 10, offset=0)
     manager, auth = _make_manager(token=token)
-    result = await manager.get_access_token()
+    await manager.get_access_token()
     auth.refresh_token.assert_called_once()
 
 
