@@ -5,6 +5,7 @@ import logging
 import json
 import random
 from time import time
+from collections import OrderedDict
 
 import aiohttp
 from retwitch.schemas.events import EventSchema
@@ -20,6 +21,7 @@ logger = logging.getLogger('twitchbot')
 
 
 WS_URL = 'wss://eventsub.wss.twitch.tv/ws'
+_DEDUP_MAX_SIZE = 500
 
 
 class BotClient:
@@ -41,6 +43,7 @@ class BotClient:
         self._socket = None
         self._reconnect_url: str | None = None
         self.handler: Callable[[RetwitchEvent], Awaitable[None]] | None = None
+        self._seen_message_ids: OrderedDict[str, None] = OrderedDict()
 
     async def create_sub(self, session_id: str) -> None:
         await self.http_reqs.create_sub_chat_message(
@@ -77,6 +80,14 @@ class BotClient:
             case 'revocation':
                 await self._socket.close()
             case _:
+                message_id = event.get('metadata', {}).get('message_id', '')
+                if message_id:
+                    if message_id in self._seen_message_ids:
+                        logger.debug('duplicate message_id %s, skipping', message_id)
+                        return
+                    self._seen_message_ids[message_id] = None
+                    if len(self._seen_message_ids) > _DEDUP_MAX_SIZE:
+                        self._seen_message_ids.popitem(last=False)
                 new_event: RetwitchEvent | None = create_event_from_subevent(event)
                 if not new_event:
                     return
