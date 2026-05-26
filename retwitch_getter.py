@@ -55,8 +55,8 @@ async def main():
     await channel_token_manager.refresh_token()
     channel_token_manager.save_real_token()
 
-    broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
-    exch = RabbitExchange(settings.rabbit_exchange)
+    broker = RabbitBroker(settings.RABBIT_URL, virtualhost=settings.RABBIT_VHOST)
+    exch = RabbitExchange(settings.RABBIT_EXCHANGE)
     publisher = Publisher(broker=broker, exchange=exch)
     handler = await init_process(publisher=publisher)
 

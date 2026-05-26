@@ -19,7 +19,7 @@ logger = logger_setup(__name__)
 
 
 async def main() -> None:
-    broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
+    broker = RabbitBroker(settings.RABBIT_URL, virtualhost=settings.RABBIT_VHOST)
 
     sender = Sender(exchange_name=settings.TWITCH_OUT, broker=broker)
     command_registry = CommandRegistry()

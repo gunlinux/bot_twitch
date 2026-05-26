@@ -5,9 +5,9 @@ import os
 _rabbit_url = os.environ.get('RABBIT_URL')
 if not _rabbit_url:
     raise RuntimeError('RABBIT_URL is not configured — set it in .env or environment')
-rabbit_url: str = _rabbit_url
-rabbit_vhost: str = os.environ.get('RABBIT_VHOST', 'gunlinux_bot')
-rabbit_exchange: str = os.environ.get('RABBIT_EXCHANGE', 'twitch_getter')
+RABBIT_URL: str = _rabbit_url
+RABBIT_VHOST: str = os.environ.get('RABBIT_VHOST', 'gunlinux_bot')
+RABBIT_EXCHANGE: str = os.environ.get('RABBIT_EXCHANGE', 'twitch_getter')
 
 # Retwitch
 RECLIENT_ID: str = os.environ.get('RECLIENT_ID', '')

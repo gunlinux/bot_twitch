@@ -57,7 +57,7 @@ async def main():
     await token_manager.refresh_token()
     token_manager.save_real_token()
 
-    broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
+    broker = RabbitBroker(settings.RABBIT_URL, virtualhost=settings.RABBIT_VHOST)
     bot = SenderBotClient(
         token_manager=token_manager,
         user_id=settings.REBOT_ID,
