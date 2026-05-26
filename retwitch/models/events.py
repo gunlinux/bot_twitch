@@ -74,6 +74,8 @@ class EventChannelResubscribeMessage(RetwitchEvent):
 
 def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent | None:
     sub_type = data.get('metadata', {}).get('subscription_type', None)
+    if sub_type not in EventType._value2member_map_:  # noqa: SLF001
+        return None
     event_type = EventType(sub_type)
     event = data.get('payload', {}).get('event', {})
 
