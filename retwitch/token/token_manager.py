@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import typing
 import time
@@ -23,6 +24,7 @@ class TokenManager:
         self._token_store = token_store
         self.twitch_auth = twitch_auth
         self._token: TokenResponse | None = None
+        self._lock = asyncio.Lock()
 
     @property
     def client_id(self) -> str:
@@ -31,12 +33,15 @@ class TokenManager:
     async def get_access_token(self) -> str:
         if not self._token:
             raise TokenUnsetError
-        if (
-            self._token.last_updated + self._token.expires_in - time.time()
-        ) < REFRESH_TOKEN_DELTA:
-            logger.warning('token close to die, time to refresh')
-            self._token = await self.twitch_auth.refresh_token(self._token)
-            self.save_real_token()
+        async with self._lock:
+            if not self._token:
+                raise TokenUnsetError
+            if (
+                self._token.last_updated + self._token.expires_in - time.time()
+            ) < REFRESH_TOKEN_DELTA:
+                logger.warning('token close to die, time to refresh')
+                self._token = await self.twitch_auth.refresh_token(self._token)
+                self.save_real_token()
         return self._token.access_token
 
     async def get_token_from_code(self, code: str) -> None:
