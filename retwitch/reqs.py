@@ -1,4 +1,5 @@
 import typing
+import asyncio
 import aiohttp
 import logging
 
@@ -183,9 +184,22 @@ class HttpReqs:
             'sender_id': bot_user_id,
             'message': message,
         }
-        async with session.post(
-            MESSAGE_ENDPOINT, headers=await self.default_headers(), json=data
-        ) as resp:
-            if resp.status != HTTPStatus.OK:
-                raise TwitchAccessError
-            logger.info('%s ', resp.status)
+        backoff = 1.0
+        for attempt in range(4):
+            async with session.post(
+                MESSAGE_ENDPOINT, headers=await self.default_headers(), json=data
+            ) as resp:
+                if resp.status == HTTPStatus.OK:
+                    logger.info('%s ', resp.status)
+                    return
+                if resp.status == HTTPStatus.TOO_MANY_REQUESTS:
+                    retry_after = float(resp.headers.get('Retry-After', backoff))
+                    logger.warning('rate limited, retrying after %.1f s', retry_after)
+                    await asyncio.sleep(retry_after)
+                elif resp.status >= 500 and attempt < 3:  # noqa: PLR2004
+                    logger.warning('server error %s, retrying (attempt %d)', resp.status, attempt + 1)
+                    await asyncio.sleep(backoff)
+                    backoff = min(backoff * 2, 30.0)
+                else:
+                    raise TwitchAccessError
+        raise TwitchAccessError
