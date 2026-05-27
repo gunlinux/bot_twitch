@@ -157,8 +157,7 @@ class BotClient:
                                 await self.http_reqs.delete_event_sub(
                                     eventsub_id=sub.get('id')
                                 )
-
-                    await self.create_sub(session_id=self.session_id)
+                        await self.create_sub(session_id=self.session_id)
 
                     logger.info('ready to read subs events')
 
