@@ -19,8 +19,8 @@ from retwitch.utils import logger_setup
 
 
 logger = logger_setup(__name__)
-# twitch caps bots at ~5 messages/minute; 12s spacing stays safely under that
-MESSAGE_TIMEOUT = 12
+# Twitch mod bots: 100 msgs per 30 s; 0.3 s spacing gives ~100/30 s
+MESSAGE_TIMEOUT = 0.3
 
 
 class ChannelRateLimiter:
