@@ -1,13 +1,10 @@
-from collections.abc import Mapping
-from marshmallow import Schema, fields, validate, INCLUDE, post_load
-from marshmallow_enum import EnumField
-import typing
+from marshmallow import Schema, fields, validate, INCLUDE
 
-from retwitch.models.events import RetwitchEvent, EventType
+from retwitch.models.events import EventType
 
 
 class RetwitchEventSchema(Schema):
-    event_type = EnumField(EventType, by_value=True, required=True)
+    event_type = fields.Enum(EventType, by_value=True, required=True)
     user_id = fields.Str(required=False, allow_none=True)
     user_login = fields.Str(required=False, allow_none=True)
     user_name = fields.Str(required=False, allow_none=True)
@@ -17,10 +14,6 @@ class RetwitchEventSchema(Schema):
 
     class Meta:
         unknown = INCLUDE
-
-    @post_load
-    def make_obj(self, data: Mapping[str, typing.Any], **_):
-        return RetwitchEvent(**data)
 
 
 class MetadataSchema(Schema):

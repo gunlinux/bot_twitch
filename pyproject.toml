@@ -3,16 +3,14 @@ name = "rebot"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "aiohttp>=3.13.5",
     "faststream[rabbit]>=0.6.7",
     "marshmallow>=3.26.1",
-    "marshmallow-enum>=1.5.1",
     "pyright>=1.1.398",
     "python-dotenv>=1.0.1",
     "requeue>=0.7.1",
-    "sentry-sdk==0.10.2",
 ]
 
 [dependency-groups]
@@ -37,7 +35,10 @@ unfixable = ["B"]
 # 4. Ignore `E402` (import violations) in all `__init__.py` files, and in selected subdirectories.
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402"]
-"**/{tests,docs,tools}/*" = ["E402"]
+"**/{tests,docs,tools}/*" = ["E402", "S106"]
+"retwitch_getter.py" = ["E402"]
+"retwitch_sender.py" = ["E402"]
+"retwitch_worker.py" = ["E402"]
 
 [tool.ruff.format]
 # 5. Use single quotes in `ruff format`.

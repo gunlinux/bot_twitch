@@ -1,13 +1,19 @@
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+
+class _RabbitURLNotConfiguredError(RuntimeError):
+    def __init__(self) -> None:
+        super().__init__('RABBIT_URL is not configured — set it in .env or environment')
+
 
 # fstream
 
-rabbit_url: str = os.environ.get('RABBIT_URL', 'amqp://user:password@localhost:5672/')
-rabbit_vhost: str = os.environ.get('RABBIT_VHOST', 'gunlinux_bot')
-rabbit_exchange: str = os.environ.get('RABBIT_EXCHANGE', 'twitch_getter')
+_rabbit_url = os.environ.get('RABBIT_URL')
+if not _rabbit_url:
+    raise _RabbitURLNotConfiguredError
+RABBIT_URL: str = _rabbit_url
+RABBIT_VHOST: str = os.environ.get('RABBIT_VHOST', 'gunlinux_bot')
+RABBIT_EXCHANGE: str = os.environ.get('RABBIT_EXCHANGE', 'twitch_getter')
 
 # Retwitch
 RECLIENT_ID: str = os.environ.get('RECLIENT_ID', '')

@@ -17,7 +17,7 @@ async def main() -> None:
         sys.exit(1)
 
     mssg = sys.argv[1]
-    broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
+    broker = RabbitBroker(settings.RABBIT_URL, virtualhost=settings.RABBIT_VHOST)
 
     sender = Sender(exchange_name=settings.TWITCH_OUT, broker=broker)
     await sender.send_message(mssg)

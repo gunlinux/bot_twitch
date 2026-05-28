@@ -1,4 +1,7 @@
 import asyncio
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from faststream.rabbit import RabbitBroker
 
@@ -16,7 +19,7 @@ logger = logger_setup(__name__)
 
 
 async def main() -> None:
-    broker = RabbitBroker(settings.rabbit_url, virtualhost=settings.rabbit_vhost)
+    broker = RabbitBroker(settings.RABBIT_URL, virtualhost=settings.RABBIT_VHOST)
 
     sender = Sender(exchange_name=settings.TWITCH_OUT, broker=broker)
     command_registry = CommandRegistry()
@@ -26,6 +29,7 @@ async def main() -> None:
         admin='gunlinux',
         command_dir=settings.COMMAND_DIR,
     )
+    retwitch_handler.bootstrap_admin_commands()
     commands = [
         Command('ауф', real_runner=auf),
         Command('gunlinAuf', real_runner=auf),
@@ -34,7 +38,7 @@ async def main() -> None:
     ]
     for command in commands:
         command_registry.register(command)
-    await retwitch_handler.reload_raw_commands(None)  # pyright: ignore[reportArgumentType]
+    await retwitch_handler.reload_raw_commands(None)
 
     await RabbitConsumer(
         broker=broker,

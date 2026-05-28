@@ -2,7 +2,7 @@
 dev: ## Install dev dependencies
 	uv sync --dev
 
-check: lint fix types
+check: lint fix types test
 	echo "check"
 
 types:
@@ -18,8 +18,8 @@ fix:  ## Fix lint errors
 	uv run ruff check --fix
 	uv run ruff format
 
-.PHONY: cov
-cov: ## Run tests with coverage
+.PHONY: test
+test: ## Run tests with coverage
 	uv run pytest
 
 .PHONY: build

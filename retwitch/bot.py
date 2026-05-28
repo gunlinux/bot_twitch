@@ -3,7 +3,9 @@ import asyncio
 import typing
 import logging
 import json
+import random
 from time import time
+from collections import OrderedDict
 
 import aiohttp
 from retwitch.schemas.events import EventSchema
@@ -16,9 +18,10 @@ from retwitch.reqs import HttpReqs
 """
 
 logger = logging.getLogger('twitchbot')
+_rng = random.SystemRandom()
 
-
-WS_URL = 'wss://eventsub.wss.twitch.tv/ws?keep_alive_timeout=30'
+WS_URL = 'wss://eventsub.wss.twitch.tv/ws'
+_DEDUP_MAX_SIZE = 500
 
 
 class BotClient:
@@ -33,13 +36,14 @@ class BotClient:
         self.token_manager = token_manager
         self._keep_alive_timeout: int = keep_alive_timeout
         self._heartbeat: int = min(self._keep_alive_timeout, 25)
-        self.session_id = None
+        self.session_id: str | None = None
         self.user_id: str = user_id
         self.broadcaster_user_id: str = broadcaster_user_id
         self.lastseen: float | None = None
         self._socket = None
         self._reconnect_url: str | None = None
         self.handler: Callable[[RetwitchEvent], Awaitable[None]] | None = None
+        self._seen_message_ids: OrderedDict[str, None] = OrderedDict()
 
     async def create_sub(self, session_id: str) -> None:
         await self.http_reqs.create_sub_chat_message(
@@ -56,7 +60,7 @@ class BotClient:
 
     async def process_event(self, event: Mapping[str, typing.Any]) -> None:
         if self._socket is None:
-            raise ValueError('Dame')
+            raise ValueError('socket_not_connected')
         match event['metadata']['message_type']:
             case 'session_welcome':
                 logger.info('got welcome message')
@@ -76,15 +80,26 @@ class BotClient:
             case 'revocation':
                 await self._socket.close()
             case _:
-                new_event: RetwitchEvent | None = create_event_from_subevent(event)
-                if not new_event:
-                    return
-                if self.handler:
-                    await self.handler(new_event)
+                await self._handle_notification(event)
+
+    async def _handle_notification(self, event: Mapping[str, typing.Any]) -> None:
+        message_id = event.get('metadata', {}).get('message_id', '')
+        if message_id:
+            if message_id in self._seen_message_ids:
+                logger.debug('duplicate message_id %s, skipping', message_id)
+                return
+            self._seen_message_ids[message_id] = None
+            if len(self._seen_message_ids) > _DEDUP_MAX_SIZE:
+                self._seen_message_ids.popitem(last=False)
+        new_event: RetwitchEvent | None = create_event_from_subevent(event)
+        if not new_event:
+            return
+        if self.handler:
+            await self.handler(new_event)
 
     async def _listen(self):
         logger.info('start listen')
-        while 1:
+        while True:
             await asyncio.sleep(self._keep_alive_timeout)
             if self.lastseen is None or not self._socket:
                 continue
@@ -100,57 +115,78 @@ class BotClient:
         await asyncio.gather(self.run_ws(), self._listen())
 
     async def run_ws(self):
-        connect_url = 'wss://eventsub.wss.twitch.tv/ws'
+        connect_url = WS_URL
         is_reconnect = False
+        backoff = 1.0
         while True:
-            async with aiohttp.ClientSession() as session:
-                params = {
-                    'keepalive_timeout_seconds': self._keep_alive_timeout,
-                }
-                self._socket = await session.ws_connect(
-                    connect_url,
-                    heartbeat=self._heartbeat,
-                    # reconnect_url already includes query params
-                    params=params if not is_reconnect else None,
-                )
-                welcome_message: aiohttp.WSMessage = await self._socket.receive()
-                event = typing.cast(
-                    'Mapping[str, typing.Any]',
-                    EventSchema().load(json.loads(welcome_message.data)),
-                )
-                await self.process_event(event)
-                if not self.session_id:
-                    raise ValueError('no_session_id')
-
-                if not is_reconnect:
-                    subs = await self.http_reqs.get_subs()
-                    for sub in subs:
-                        logger.info('deleting sub %s', sub.get('id'))
-                        await self.http_reqs.delete_event_sub(eventsub_id=sub.get('id'))
-
-                await self.create_sub(session_id=self.session_id)
-
-                logger.info('ready to read subs events')
-
-                async for mssg in self._socket:
-                    logger.info('got new message: %s', mssg.data)
-                    try:
-                        event = typing.cast(
-                            'Mapping[str, str]',
-                            EventSchema().load(json.loads(mssg.data)),
-                        )
-                    except Exception as e:  # noqa: BLE001
-                        logger.warning('cant load event %s', mssg.data, exc_info=e)
-                        continue
+            try:
+                async with aiohttp.ClientSession() as session:
+                    params = {
+                        'keepalive_timeout_seconds': self._keep_alive_timeout,
+                    }
+                    self._socket = await session.ws_connect(
+                        connect_url,
+                        heartbeat=self._heartbeat,
+                        # reconnect_url already includes query params
+                        params=params if not is_reconnect else None,
+                    )
+                    welcome_message: aiohttp.WSMessage = await self._socket.receive()
+                    event = typing.cast(
+                        'Mapping[str, typing.Any]',
+                        EventSchema().load(json.loads(welcome_message.data)),
+                    )
                     await self.process_event(event)
+                    if not self.session_id:
+                        logger.warning('no session_id after welcome, reconnecting')
+                        connect_url = WS_URL
+                        is_reconnect = False
+                        continue
+
+                    backoff = 1.0
+
+                    if not is_reconnect:
+                        subs = await self.http_reqs.get_subs()
+                        for sub in subs:
+                            sub_session = sub.get('transport', {}).get('session_id', '')
+                            if sub_session != self.session_id:
+                                logger.info(
+                                    'deleting stale sub %s (session %s)',
+                                    sub.get('id'),
+                                    sub_session,
+                                )
+                                await self.http_reqs.delete_event_sub(
+                                    eventsub_id=sub.get('id')
+                                )
+                        await self.create_sub(session_id=self.session_id)
+
+                    logger.info('ready to read subs events')
+
+                    async for mssg in self._socket:
+                        logger.info('got new message: %s', mssg.data)
+                        try:
+                            event = typing.cast(
+                                'Mapping[str, str]',
+                                EventSchema().load(json.loads(mssg.data)),
+                            )
+                        except Exception as e:  # noqa: BLE001
+                            logger.warning('cant load event %s', mssg.data, exc_info=e)
+                            continue
+                        await self.process_event(event)
+            except Exception as e:  # noqa: BLE001
+                logger.warning('ws connection error: %s', e)
 
             if self._reconnect_url:
                 connect_url = self._reconnect_url
                 self._reconnect_url = None
                 is_reconnect = True
             else:
-                connect_url = 'wss://eventsub.wss.twitch.tv/ws'
+                connect_url = WS_URL
                 is_reconnect = False
+                jitter = _rng.uniform(0, backoff * 0.1)
+                delay = min(backoff + jitter, 60.0)
+                logger.info('reconnecting in %.1f seconds', delay)
+                await asyncio.sleep(delay)
+                backoff = min(backoff * 2, 60.0)
 
 
 class ChannelBotClient(BotClient):
