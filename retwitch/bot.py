@@ -57,6 +57,12 @@ class BotClient:
             broadcaster_user_id=self.broadcaster_user_id,
             user_id=self.user_id,
         )
+        logger.info('channel_chat_notification %s', self.broadcaster_user_id)
+        await self.http_reqs.create_sub_channel_chat_notification(
+            session_id=session_id,
+            broadcaster_user_id=self.broadcaster_user_id,
+            user_id=self.user_id,
+        )
 
     async def process_event(self, event: Mapping[str, typing.Any]) -> None:
         if self._socket is None:

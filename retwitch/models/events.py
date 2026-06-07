@@ -11,6 +11,7 @@ class EventType(StrEnum):
     CHANNEL_SUBSCRIBE = 'channel.subscribe'
     CHANNEL_RESUBSCRIBE = 'channel.subscription.message'
     CUSTOM_REWARD = 'channel.channel_points_custom_reward_redemption.add'
+    CHANNEL_CHAT_NOTIFICATION = 'channel.chat.notification'
 
 
 @dataclass
@@ -70,6 +71,17 @@ class EventChannelResubscribeMessage(RetwitchEvent):
             f'{self.user_name} just resubscribed to channel '
             f'({self.event.get("tier")}) with message {self.event.get("text")}'
         )
+
+
+class EventWatchStreak(RetwitchEvent):
+    @property
+    @typing.override
+    def message(self) -> str | None:
+        system_message = self.event.get('system_message')
+        if system_message:
+            return system_message
+        streak = self.event.get('streak')
+        return f'{self.user_name} just hit a watch streak of {streak}'
 
 
 def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent | None:
@@ -152,6 +164,27 @@ def create_event_from_subevent(data: Mapping[str, typing.Any]) -> RetwitchEvent 
                     'cumulative_months': event.get('cumulative_months', 0),
                     'streak_months': event.get('streak_months'),
                     'duration_months': event.get('duration_months', 0),
+                },
+            )
+        case EventType.CHANNEL_CHAT_NOTIFICATION:
+            # channel.chat.notification carries every notice_type (sub, resub,
+            # raid, announcement, ...). Subs/raids already arrive via their own
+            # dedicated subscriptions, so only emit for watch_streak to avoid
+            # duplicate chat notifications.
+            if event.get('notice_type') != 'watch_streak':
+                return None
+            watch_streak = event.get('watch_streak') or {}
+            result = EventWatchStreak(
+                event_type=event_type,
+                user_id=event.get('chatter_user_id', ''),
+                user_login=event.get('chatter_user_login', ''),
+                user_name=event.get('chatter_user_name', ''),
+                event={
+                    'notice_type': event.get('notice_type', ''),
+                    'system_message': event.get('system_message', ''),
+                    'streak': watch_streak.get('watch_streak_months')
+                    if isinstance(watch_streak, Mapping)
+                    else None,
                 },
             )
     return result
