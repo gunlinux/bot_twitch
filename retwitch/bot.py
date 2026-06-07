@@ -61,15 +61,18 @@ class BotClient:
     async def process_event(self, event: Mapping[str, typing.Any]) -> None:
         if self._socket is None:
             raise ValueError('socket_not_connected')
+        # Twitch resets its keepalive timer on every message (notifications
+        # included), so it only sends session_keepalive while idle. Refresh
+        # lastseen on any inbound message, otherwise the watchdog kills a
+        # healthy-but-busy connection.
+        self.lastseen = time()
         match event['metadata']['message_type']:
             case 'session_welcome':
                 logger.info('got welcome message')
-                self.lastseen = time()
                 self.session_id = event['payload']['session']['id']
 
             case 'session_keepalive':
-                logger.info('updated last seen')
-                self.lastseen = time()
+                logger.debug('updated last seen')
 
             case 'session_reconnect':
                 reconnect_url = event['payload']['session']['reconnect_url']
@@ -106,7 +109,7 @@ class BotClient:
 
             last_seen = time() - self.lastseen
 
-            if last_seen > self._keep_alive_timeout + 5:
+            if last_seen > self._keep_alive_timeout * 2:
                 logger.warning('we are dead %s', last_seen)
                 await self._socket.close()
 
@@ -145,6 +148,10 @@ class BotClient:
                     backoff = 1.0
 
                     if not is_reconnect:
+                        # Create the new subscriptions first so the connection
+                        # starts delivering events as early as possible, then
+                        # reap subs left over from previous (now-dead) sessions.
+                        await self.create_sub(session_id=self.session_id)
                         subs = await self.http_reqs.get_subs()
                         for sub in subs:
                             sub_session = sub.get('transport', {}).get('session_id', '')
@@ -157,7 +164,6 @@ class BotClient:
                                 await self.http_reqs.delete_event_sub(
                                     eventsub_id=sub.get('id')
                                 )
-                        await self.create_sub(session_id=self.session_id)
 
                     logger.info('ready to read subs events')
 
