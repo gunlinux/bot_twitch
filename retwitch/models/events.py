@@ -81,6 +81,8 @@ class EventWatchStreak(RetwitchEvent):
         if system_message:
             return system_message
         streak = self.event.get('streak')
+        if text := self.event.get('text', ''):
+            return f'{self.user_name} just hit a watch streak of {streak}: {text}'
         return f'{self.user_name} just hit a watch streak of {streak}'
 
 
