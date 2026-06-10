@@ -7,6 +7,7 @@ from retwitch.models.events import (
     EventChannelSubscribe,
     EventChannelResubscribeMessage,
     EventCustomReward,
+    EventWatchStreak,
 )
 
 
@@ -165,3 +166,51 @@ def test_custom_reward_event():
     event = create_event_from_subevent(data)
     assert isinstance(event, EventCustomReward)
     assert 'Hydrate' in event.message
+
+
+def test_watch_streak_event():
+    data = _make_event(
+        EventType.CHANNEL_CHAT_NOTIFICATION,
+        {
+            'chatter_user_id': 'u6',
+            'chatter_user_login': 'streaker',
+            'chatter_user_name': 'Streaker',
+            'notice_type': 'watch_streak',
+            'system_message': 'Streaker watched 10 consecutive streams!',
+            'watch_streak': {'watch_streak_months': 10},
+        },
+    )
+    event = create_event_from_subevent(data)
+    assert isinstance(event, EventWatchStreak)
+    assert event.message == 'Streaker watched 10 consecutive streams!'
+    assert event.user_login == 'streaker'
+
+
+def test_watch_streak_event_missing_system_message():
+    data = _make_event(
+        EventType.CHANNEL_CHAT_NOTIFICATION,
+        {
+            'chatter_user_id': 'u6',
+            'chatter_user_login': 'streaker',
+            'chatter_user_name': 'Streaker',
+            'notice_type': 'watch_streak',
+            'watch_streak': {'watch_streak_months': 7},
+        },
+    )
+    event = create_event_from_subevent(data)
+    assert isinstance(event, EventWatchStreak)
+    assert '7' in event.message
+
+
+def test_chat_notification_other_notice_type_returns_none():
+    data = _make_event(
+        EventType.CHANNEL_CHAT_NOTIFICATION,
+        {
+            'chatter_user_id': 'u7',
+            'chatter_user_login': 'subber',
+            'chatter_user_name': 'Subber',
+            'notice_type': 'sub',
+            'system_message': 'Subber subscribed!',
+        },
+    )
+    assert create_event_from_subevent(data) is None

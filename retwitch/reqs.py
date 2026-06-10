@@ -95,6 +95,29 @@ class HttpReqs:
             logger.info('%s %s', _type, resp.status)
             await resp.json()
 
+    async def create_sub_channel_chat_notification(
+        self, session_id: str, broadcaster_user_id: str, user_id: str
+    ):
+        _type = 'channel.chat.notification'
+        session = self._get_session()
+        data = {
+            'type': _type,
+            'version': '1',
+            'condition': {
+                'broadcaster_user_id': broadcaster_user_id,
+                'user_id': user_id,
+            },
+            'transport': {
+                'method': 'websocket',
+                'session_id': session_id,
+            },
+        }
+        async with session.post(
+            EVENT_SUB, headers=await self.default_headers(), json=data
+        ) as resp:
+            logger.info('%s %s', _type, resp.status)
+            await resp.json()
+
     async def create_sub_channel_raid(self, session_id: str, broadcaster_user_id: str):
         _type = 'channel.raid'
         session = self._get_session()
